@@ -18,10 +18,22 @@ library(tidyverse)
 
 ```{r}
 matches <- read.csv("data/international_matches.csv")
+box <- read.csv("data/FIFAallMatchBoxData.csv")
 ```
 
 
 ```{r}
+matches <- matches %>% 
+  mutate(year = substr(date,1,4))
+
+box$year <- as.character(box$year)
+  
+
+final_dataset <- inner_join(matches, box, by = c( "year"= "year",
+                                            "home_team" = "hname", 
+                                            "away_team" = "aname", 
+                                            "home_team_score" = "hgoals", 
+                                            "away_team_score" = "agoals"))
 
 ```
 
