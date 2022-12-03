@@ -9,10 +9,19 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+```{r}
+library(tidyverse)
+```
+
 ## Introduction
+
+```{r}
+matches <- read.csv("data/international_matches.csv")
+```
+
 
 ```{r}
 
 ```
-
 
