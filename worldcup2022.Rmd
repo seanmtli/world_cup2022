@@ -9,6 +9,17 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Methodology: 
+Using historical data and group stage matches individual match up to the final 16 (because we know these matchups will occur) 
+Based on this data, we will calculate win probabilities, loss probabilities, and expected score 
+Based on individual matches in the group stage up to round of 16, we will calculate who wins top of their group/2nd etc. 
+
+Model: 
+Use a probabilistic model, because sports betters want to know probabilities 
+Poisson GLM, can use lasso
+Monte Carlo 
+
+
 ## FINAL WRITEUP
 
 
