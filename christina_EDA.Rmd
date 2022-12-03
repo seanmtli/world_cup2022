@@ -1,0 +1,66 @@
+---
+title: "christina_EDA"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(tidyverse)
+```
+
+## Introduction
+
+
+```{r}
+matches <- read.csv("data/international_matches.csv")
+box <- read.csv("data/FIFAallMatchBoxData.csv")
+```
+
+
+```{r}
+matches <- matches %>% 
+  mutate(year = substr(date,1,4))
+
+box$year <- as.character(box$year)
+  
+
+final_dataset <- inner_join(matches, box, by = c( "year"= "year",
+                                            "home_team" = "hname", 
+                                            "away_team" = "aname", 
+                                            "home_team_score" = "hgoals", 
+                                            "away_team_score" = "agoals"))
+
+```
+
+```{r}
+final_dataset
+```
+
+```{r}
+final_dataset%>%
+  hgoals
+  
+```
+
+```{r}
+ggplot(data = final_dataset) +
+  geom_histogram(mapping = aes(x = home_team_score), binwidth = 0.5)
+```
+
+```{r}
+ggplot(data = final_dataset) +
+  geom_histogram(mapping = aes(x = away_team_score), binwidth = 0.5)
+```
+
+
+```{r}
+ggplot(data = final_dataset) +
+  geom_histogram(mapping = aes(x = away_team_score), binwidth = 0.5)
+```
+
+
