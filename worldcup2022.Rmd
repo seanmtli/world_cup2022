@@ -11,5 +11,16 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## FINAL WRITEUP
 
+```{r}
+library(tidyverse)
+int_matches <- read_csv("data/international_matches.csv")
+qatar_teams <- read_delim("data/Qatar2022-teams.csv", delim = ";")
+matches_sched <- read_delim("data/matchs-schedule.csv", delim = ";")
+```
+
+
+```{r}
+
+```
 
 
