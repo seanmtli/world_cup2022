@@ -1,0 +1,15 @@
+---
+title: "World Cup 2022"
+author: "Sean Li, Brian Janger, Aaditya Warrier, Christina Yoh"
+date: '2022-12-03'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## FINAL WRITEUP
+
+
+
