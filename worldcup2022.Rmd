@@ -24,6 +24,8 @@ Monte Carlo
 
 ```{r}
 library(tidyverse)
+library(DescTools)
+data("d.countries")
 int_matches <- read_csv("data/international_matches.csv")
 qatar_teams <- read_delim("data/Qatar2022-teams.csv", delim = ";")
 matches_sched <- read_delim("data/matchs-schedule.csv", delim = ";")
@@ -31,7 +33,33 @@ matches_sched <- read_delim("data/matchs-schedule.csv", delim = ";")
 
 
 ```{r}
+library(glmnet)
+glmnet()
+```
 
+
+
+```{r}
+library(rvest)
+years <- c(seq(1990,2022,4))
+result = list()
+for (year in years) {
+    url <- paste0("http://en.wikipedia.org/wiki/", year, "_FIFA_World_Cup_squads")
+    temp <- read_html(url)
+    tables <- temp %>%
+      html_table() %>%
+      list() %>%
+      .[[1]]
+    countries <- temp %>%
+      html_elements("h3 .mw-headline") %>%
+      html_text()
+    names(tables) <- countries
+    tables <- tables[names(tables) %in% d.countries$name]
+    result <- append(result, list(tables))
+}   
+names(result) <- years
+
+result$`1990`
 ```
 
 
