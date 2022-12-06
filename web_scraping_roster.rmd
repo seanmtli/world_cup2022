@@ -1,0 +1,80 @@
+---
+title: "web_scraping_roster"
+author: "Aaditya Warrier"
+date: "2022-12-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+library(rvest)
+years <- c(seq(1990,2022,4))
+result = list()
+for (year in years) {
+    url <- paste0("http://en.wikipedia.org/wiki/", year, "_FIFA_World_Cup_squads")
+    temp <- read_html(url)
+    tables <- temp %>%
+      html_table() %>%
+      list() %>%
+      .[[1]]
+    countries <- temp %>%
+      html_elements("h3 .mw-headline") %>%
+      html_text()
+    names(tables) <- countries
+    tables <- tables[names(tables) %in% d.countries$name]
+    result <- append(result, list(tables))
+}   
+names(result) <- years
+```
+
+
+```{r}
+trying_2 <- result %>% 
+  tibble(all = .) %>%
+  mutate(year = seq(1990, 2022, 4)) %>%
+  unnest_wider(all) %>%
+  pivot_longer(col = -year, values_to = "Country") 
+
+indices <- c()
+
+for(i in 1:nrow(trying_2)) {
+  if(!is.null(nrow(trying_2$Country[[i]]))) {
+    indices <- c(indices, i)
+  }
+} 
+
+trying_2 <- trying_2[indices ,]
+
+for(i in 1:nrow(trying_2)) {
+  trying_2[["Country"]][[i]]$No. <- as.numeric(trying_2[["Country"]][[i]]$No.)
+  trying_2[["Country"]][[i]]$Pos. <- as.character(trying_2[["Country"]][[i]]$Pos.)
+  trying_2[["Country"]][[i]]$Caps <- as.character(trying_2[["Country"]][[i]]$Caps)
+  
+}
+
+
+trying_3 <- trying_2 %>%
+  unnest_wider(Country) %>%
+  rename(c(Country = name, "DOB" = "Date of birth (age)"))
+
+trying_3$No. <- as.list(trying_3$No.)
+trying_3$Pos. <- as.list(trying_3$Pos.)
+trying_3$Player <- as.list(trying_3$Player)
+trying_3$DOB <- as.list(trying_3$DOB)
+trying_3$Caps <- as.list(trying_3$Caps)
+trying_3$Club <- as.list(trying_3$Club)
+trying_3$Goals <- as.list(trying_3$Goals)
+
+
+final_roster_data <- trying_3 %>%
+  unnest_longer(col = -Country) %>%
+  select(-No.)
+
+write.csv(final_roster_data, "data/final_roster_data.csv")
+```
+
