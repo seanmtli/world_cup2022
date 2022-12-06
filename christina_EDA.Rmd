@@ -63,4 +63,18 @@ ggplot(data = final_dataset) +
   geom_histogram(mapping = aes(x = away_team_score), binwidth = 0.5)
 ```
 
+```{r}
+ggplot(data = final_dataset, mapping = aes(x = away_team_score, y = away_team_fifa_rank)) + 
+  geom_point()
+```
+
+```{r}
+ggplot(data = final_dataset, mapping = aes(x = away_team_score, y = away_team_fifa_rank)) + 
+  geom_point()
+```
+
+Top 10 Teams Fifa Ranking
+Top 10 teams with highest wining percentage at home and away
+Top 10 attacking eams in last fifa date
+Correlatoin Matrix 
 
