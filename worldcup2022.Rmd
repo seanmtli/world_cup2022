@@ -46,8 +46,8 @@ fifa_only <- int_matches %>%
 final_roster_data <- final_roster_data[,-1]
 home_x <- model.matrix() # some combination of ranking and roster
 away_x <- home_x
-home_y <- placeholder
-away_y <- placeholder
+home_y <- fifa_only$home_team_score
+away_y <- fifa_only$away_team_score
 home_model <- glmnet(home_x, home_y, alpha = 1)
 away_model <- glmnet(away_x, away_y, alpha = 1)
 
