@@ -19,22 +19,52 @@ Use a probabilistic model, because sports betters want to know probabilities
 Poisson GLM, can use lasso
 Monte Carlo 
 
-We are predicting the goal-line for each match upto round of 16 using a Poisson GLM that takes home stats and away stats into account, as well as individual team rosters 
+We are predicting the goal-line (MUST BE ABSOLUTE VALUE CAUSE POISSON WILL NOT WORK OTHERWISE) for each match upto round of 16 using a Poisson GLM that takes home stats and away stats into account, as well as individual team rosters 
+
+Will need to make two diff models for home and away because of negative value restriction
 
 ## FINAL WRITEUP
 
 ```{r}
 library(tidyverse)
 library(DescTools)
+library(glmnet)
 data("d.countries")
 int_matches <- read_csv("data/international_matches.csv")
 qatar_teams <- read_delim("data/Qatar2022-teams.csv", delim = ";")
 matches_sched <- read_delim("data/matchs-schedule.csv", delim = ";")
+final_roster_data <- read_csv("data/final_roster_data.csv")
 ```
-
 
 ```{r}
-library(glmnet)
-```
+# should we use fifa only matches? we only have roster for these, still about 5000 matches including # qualifying mmatches
+fifa_only <- int_matches %>%
+  filter(str_detect(tournament, "FIFA"))
 
+
+# setting up framework for model
+final_roster_data <- final_roster_data[,-1]
+home_x <- model.matrix() # some combination of ranking and roster
+away_x <- home_x
+home_y <- placeholder
+away_y <- placeholder
+home_model <- glmnet(home_x, home_y, alpha = 1)
+away_model <- glmnet(away_x, away_y, alpha = 1)
+
+
+home_x_2022 <- placeholder # get info from int_matches dataset, use qualifying matches
+away_x_2022 <- placeholder
+
+home_preds <- predict(home_model, newdata = home_x_2022)
+away_preds <- predict(away_model, newdata = home_y_2022)
+
+goalline_preds <- home_preds - away_preds
+
+# Monte Carlo Simulation 
+
+# use this to generate data - https://stats.stackexchange.com/questions/27443/generate-data-samples-from-poisson-regression
+
+
+
+```
 
