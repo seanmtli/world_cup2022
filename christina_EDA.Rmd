@@ -19,6 +19,7 @@ library(tidyverse)
 ```{r}
 matches <- read.csv("data/international_matches.csv")
 box <- read.csv("data/FIFAallMatchBoxData.csv")
+fifa_rankings<-read.csv("data/fifa_ranking-2022-10-06.csv")
 ```
 
 
@@ -38,7 +39,8 @@ final_dataset <- inner_join(matches, box, by = c( "year"= "year",
 ```
 
 ```{r}
-final_dataset
+final_dataset%>%
+  arrange(desc(date))
 ```
 
 ```{r}
@@ -68,13 +70,145 @@ ggplot(data = final_dataset, mapping = aes(x = away_team_score, y = away_team_fi
   geom_point()
 ```
 
+
+Tournament Types 
 ```{r}
-ggplot(data = final_dataset, mapping = aes(x = away_team_score, y = away_team_fifa_rank)) + 
-  geom_point()
+ggplot(data = final_dataset) +
+  geom_bar(mapping = aes(x = tournament))
 ```
 
-Top 10 Teams Fifa Ranking
+Top 10 FIFA ranked teams 
+
+```{r}
+home_team_ranks <- final_dataset%>%
+  select(home_team,date, home_team_fifa_rank)%>%
+  rename(
+    team = home_team, 
+    fifa_rank = home_team_fifa_rank
+  )
+
+away_team_ranks <- final_dataset%>%
+  select(away_team, date, away_team_fifa_rank)%>%
+  rename(
+    team = away_team, 
+    fifa_rank = away_team_fifa_rank
+  )
+
+team_ranks <-rbind(home_team_ranks, away_team_ranks)
+  
+#  merge(x=home_team_ranks,y=away_team_ranks, 
+  #           by=c("team","date","fifa_rank"))
+top_team_ranks<- team_ranks%>%
+    arrange((team),desc(date)) %>%
+    group_by(team)%>%
+    slice(1) 
+
+#%>%
+ #   arrange(fifa_rank)%>% 
+ #   slice(1:10)
+  
+
+fifa_top_10<-top_team_ranks%>%
+  arrange(fifa_rank)%>%head(10)
+
+fifa_top_10
+```
+
+
+```{r}
+fifa_rankings%>%
+  filter(rank_date=="2022-10-06")%>%
+  arrange(rank)%>%
+  slice(1:10)
+```
+
+Home team and away team rank differential vs home team rank differential
+
+```{r}
+final_dataset<- final_dataset%>%
+  mutate(goal_differential = home_team_score-away_team_score,
+         rank_differential =away_team_fifa_rank-home_team_fifa_rank)
+```
+
+```{r}
+ggplot(data = final_dataset, mapping = aes(x = goal_differential, y =rank_differential)) + 
+  geom_point()
+```
+The greater the difference in rank (meaning the higher the home team is ranked against the away team), the higher the goal differential (the more the home team scores against the away team). 
+
+Home team and away team rank differential vs home team result (win, draw, loss)
+
+```{r}
+ggplot(data = final_dataset, mapping = aes(x = rank_differential, y =home_team_result)) + 
+   geom_boxplot()
+```
+
+
+Best 10 offensive teams 
+
+```{r}
+home_team_offense <- final_dataset%>%
+  select(home_team,date, home_team_mean_offense_score)%>%
+  rename(
+    team = home_team, 
+    offense_score = home_team_mean_offense_score
+  )
+
+away_team_offense <- final_dataset%>%
+  select(away_team, date, away_team_mean_offense_score)%>%
+  rename(
+    team = away_team, 
+    offense_score = away_team_mean_offense_score
+  )
+
+team_offense <-rbind(home_team_offense, away_team_offense)
+  
+#  merge(x=home_team_ranks,y=away_team_ranks, 
+  #           by=c("team","date","fifa_rank"))
+top_team_offense<- team_offense%>%
+    arrange((team),desc(date)) %>%
+    group_by(team)%>%
+    slice(1) 
+
+top_team_offense%>%
+  arrange(desc(offense_score))%>%head(10)
+
+```
+
+Best 10 defensive teams
+
+```{r}
+home_team_defense <- final_dataset%>%
+  select(home_team,date, home_team_mean_defense_score)%>%
+  rename(
+    team = home_team, 
+    defense_score = home_team_mean_defense_score
+  )
+
+away_team_defense <- final_dataset%>%
+  select(away_team, date, away_team_mean_defense_score)%>%
+  rename(
+    team = away_team, 
+    defense_score = away_team_mean_defense_score
+  )
+
+team_defense <-rbind(home_team_defense, away_team_defense)
+  
+#  merge(x=home_team_ranks,y=away_team_ranks, 
+  #           by=c("team","date","fifa_rank"))
+top_team_defense<- team_defense%>%
+    arrange((team),desc(date)) %>%
+    group_by(team)%>%
+    slice(1) 
+
+top_team_defense%>%
+  arrange(desc(defense_score))%>%head(10)
+
+```
+
+
 Top 10 teams with highest wining percentage at home and away
-Top 10 attacking eams in last fifa date
+
+
 Correlatoin Matrix 
 
