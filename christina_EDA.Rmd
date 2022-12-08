@@ -43,11 +43,6 @@ final_dataset%>%
   arrange(desc(date))
 ```
 
-```{r}
-final_dataset%>%
-  hgoals
-  
-```
 
 ```{r}
 ggplot(data = final_dataset) +
@@ -58,24 +53,18 @@ ggplot(data = final_dataset) +
 ggplot(data = final_dataset) +
   geom_histogram(mapping = aes(x = away_team_score), binwidth = 0.5)
 ```
-
-
 ```{r}
 ggplot(data = final_dataset) +
   geom_histogram(mapping = aes(x = away_team_score), binwidth = 0.5)
 ```
+
+
 
 ```{r}
 ggplot(data = final_dataset, mapping = aes(x = away_team_score, y = away_team_fifa_rank)) + 
   geom_point()
 ```
 
-
-Tournament Types 
-```{r}
-ggplot(data = final_dataset) +
-  geom_bar(mapping = aes(x = tournament))
-```
 
 Top 10 FIFA ranked teams 
 
@@ -122,13 +111,21 @@ fifa_rankings%>%
   slice(1:10)
 ```
 
-Home team and away team rank differential vs home team rank differential
 
 ```{r}
 final_dataset<- final_dataset%>%
   mutate(goal_differential = home_team_score-away_team_score,
          rank_differential =away_team_fifa_rank-home_team_fifa_rank)
 ```
+
+
+```{r}
+ggplot(data = final_dataset) +
+  geom_histogram(mapping = aes(x = goal_differential), binwidth = 0.5)
+```
+
+
+Home team and away team rank differential vs home team rank differential
 
 ```{r}
 ggplot(data = final_dataset, mapping = aes(x = goal_differential, y =rank_differential)) + 
@@ -142,6 +139,14 @@ Home team and away team rank differential vs home team result (win, draw, loss)
 ggplot(data = final_dataset, mapping = aes(x = rank_differential, y =home_team_result)) + 
    geom_boxplot()
 ```
+
+Possesion vs home team result
+
+```{r}
+ggplot(data = final_dataset, mapping = aes(x = hPossesion, y =home_team_result)) + 
+   geom_boxplot()
+```
+
 
 
 Best 10 offensive teams 
@@ -170,9 +175,41 @@ top_team_offense<- team_offense%>%
     group_by(team)%>%
     slice(1) 
 
-top_team_offense%>%
+top_10_offense <- top_team_offense%>%
   arrange(desc(offense_score))%>%head(10)
 
+top_10_offense
+```
+
+
+Best 10 midfield teams 
+```{r} 
+home_team_midfield <- final_dataset%>%
+  select(home_team,date, home_team_mean_midfield_score)%>%
+  rename(
+    team = home_team, 
+    midfield_score = home_team_mean_midfield_score
+  )
+
+away_team_midfield <- final_dataset%>%
+  select(away_team, date, away_team_mean_midfield_score)%>%
+  rename(
+    team = away_team, 
+    midfield_score = away_team_mean_midfield_score
+  )
+
+team_midfield <-rbind(home_team_midfield, away_team_midfield)
+  
+top_team_midfield<- team_midfield%>%
+    arrange((team),desc(date)) %>%
+    group_by(team)%>%
+    slice(1) 
+
+top_10_midfield <- top_team_midfield%>%
+  arrange(desc(midfield_score))%>%head(10)
+
+
+top_10_midfield
 ```
 
 Best 10 defensive teams
@@ -201,7 +238,7 @@ top_team_defense<- team_defense%>%
     group_by(team)%>%
     slice(1) 
 
-top_team_defense%>%
+top_10_defense <- top_team_defense%>%
   arrange(desc(defense_score))%>%head(10)
 
 ```
