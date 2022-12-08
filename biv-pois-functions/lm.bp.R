@@ -9,6 +9,7 @@ options(warn=-1)
 templist<-list( l1=l1, l2=l2, l1l2=l1l2, l3=l3, data=substitute(data), common.intercept=common.intercept, zeroL3=zeroL3, maxit=maxit, pres=pres, verbose=verbose)
 tempcall<-as.call( c(expression(lm.bp), templist))
 rm(templist)
+library(dplyr)
 #
 #
 # ------------------------------------------------------------------------------------
@@ -39,8 +40,8 @@ else {formula1.terms<-'internal.data1$noncommon'	}
 #
 namex<-as.character(l1[2])
 namey<-as.character(l2[2])
-x<-data[,names(data)==namex]
-y<-data[,names(data)==namey]
+x<-pull(data[,names(data)==namex])
+y<-pull(data[,names(data)==namey])
 #
 # Data length
 n<-length(x)
@@ -143,8 +144,8 @@ if (length( templ2 )>0){
 #
 rm(templ1)
 rm(templ2)
-rm(Checkvar1)
-rm(Checkvar2)
+rm(checkvar1)
+rm(checkvar2)
 #
 #
 #
@@ -226,7 +227,11 @@ if (zeroL3) {
 	betaparameters<-splitbeta( beta )
 #	
 	lambda<-fitted(m)
-	lambda1<-lambda[1:n]
+	lambda1<-lambda[1:n] 
+	print(typeof(lambda1))
+	print(typeof(x))
+	print(lambda1)
+	print(x)
 	lambda2<-lambda[(n+1):(2*n)]
 	like<-dpois(x, lambda1) * dpois( y, lambda2 )
 	loglike<-sum(log(like))
