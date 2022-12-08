@@ -31,6 +31,12 @@ library(DescTools)
 library(glmnet)
 library(extraDistr)
 data("d.countries")
+source("biv-pois-functions/lm.bp.R")
+source("biv-pois-functions/bivpois.table.R")
+source("biv-pois-functions/newnamesbeta.R")
+source("biv-pois-functions/pbivpois.R")
+source("biv-pois-functions/simple.bp.R")
+source("biv-pois-functions/splitbeta.R")
 int_matches <- read_csv("data/international_matches.csv")
 qatar_teams <- read_delim("data/Qatar2022-teams.csv", delim = ";")
 matches_sched <- read_delim("data/matchs-schedule.csv", delim = ";")
@@ -65,8 +71,10 @@ goalline_preds <- home_preds - away_preds
 # Monte Carlo Simulation 
 
 # use this to generate data - https://stats.stackexchange.com/questions/27443/generate-data-samples-from-poisson-regression
+fin_mod <- lm.bp(l1 = home_team_score~ home_team_fifa_rank, l2 = away_team_score~away_team_fifa_rank,
+      l1l2 = ~ home_team_fifa_rank + away_team_fifa_rank, zeroL3 = TRUE, data = fifa_only)
 
-
+simple.bp(x = home_y, y = away_y)
 
 ```
 
