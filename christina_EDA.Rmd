@@ -115,7 +115,7 @@ fifa_rankings%>%
 ```{r}
 final_dataset<- final_dataset%>%
   mutate(goal_differential = home_team_score-away_team_score,
-         rank_differential =away_team_fifa_rank-home_team_fifa_rank)
+         rank_differential =away_team_fifa_rank-home_team_fifa_rank )
 ```
 
 
@@ -241,11 +241,34 @@ top_team_defense<- team_defense%>%
 top_10_defense <- top_team_defense%>%
   arrange(desc(defense_score))%>%head(10)
 
+top_10_defense 
 ```
 
 
-Top 10 teams with highest wining percentage at home and away
+```{r}
+top_10_int<- full_join(top_10_defense,top_10_midfield, by = c("team", "date"))
+```
+
+Top 10 teams for defense, midfield, and offense -- countries that have top 10 in all 3 categories will have no NA values. 
+
+```{r}
+top_10_all<-full_join(top_10_int, top_10_offense, by=c("team", "date"))
+top_10_all
+```
+
+```{r}
+library(reshape2)
+team_scores <- melt(top_10_all, id = c("team","date"))
+
+head(team_scores)
+```
 
 
-Correlatoin Matrix 
+```{r}
+ggplot(team_scores, aes(fill=variable, y=value, x=team)) + 
+    geom_bar(position="dodge", stat="identity")+
+    coord_flip()
+```
+
+Correlation Matrix 
 
