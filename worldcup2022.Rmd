@@ -46,18 +46,30 @@ final_roster_data <- read_csv("data/final_roster_data.csv")
 
 ```{r}
 # should we use fifa only matches? we only have roster for these, still about 5000 matches including # qualifying mmatches
-fifa_only <- int_matches %>%
-  filter(str_detect(tournament, "FIFA"))
+# fifa_only <- int_matches %>%
+#   filter(str_detect(tournament, "FIFA"))
 
+# use final_dataset from sean_eda
 
 # setting up framework for model
-final_roster_data <- final_roster_data[,-1]
-home_x <- model.matrix() # some combination of ranking and roster
-away_x <- home_x
-home_y <- fifa_only$home_team_score
-away_y <- fifa_only$away_team_score
-home_model <- glmnet(home_x, home_y, alpha = 1)
-away_model <- glmnet(away_x, away_y, alpha = 1)
+test_nums <- sample 
+home_x <- model.matrix(hgoals ~ . - year - hname - aname, data = box)
+away_x <- model.matrix(agoals ~ . - year - hname - aname, data = box)
+home_y <- box$hgoals
+away_y <- box$agoals
+lambda_grid <- 10^seq(-2, 10, length.out = 5000)
+home_model <- cv.glmnet(home_x, home_y, alpha = 0.5, lambda = lambda_grid, family = "poisson")
+away_model <- cv.glmnet(away_x, away_y, alpha = 0.5, lambda = lambda_grid, family = "poisson")
+
+home_lambda <- home_model$lambda.min
+away_lambda <- away_model$lambda.min
+
+final_home <- glmnet(home_x, home_y, alpha = 0.5, lambda = home_lambda, family = "poisson")
+final_away <- glmnet(away_x, away_y, alpha = 0.5, lambda = away_lambda, family = "poisson")
+
+final_home$beta
+
+final_away$beta
 
 
 home_x_2022 <- placeholder # get info from int_matches dataset, use qualifying matches
@@ -75,6 +87,17 @@ fin_mod <- lm.bp(l1 = home_team_score~ home_team_fifa_rank, l2 = away_team_score
       l1l2 = ~ home_team_fifa_rank + away_team_fifa_rank, zeroL3 = TRUE, data = fifa_only)
 
 simple.bp(x = home_y, y = away_y)
+
+
+
+cups_only <- int_matches %>%
+  filter(!str_detect(tournament, "Friendly|qualification"), format(date, "%Y") >= 2006) %>%
+  select(-home_team_goalkeeper_score, away_team_goalkeeper_score)
+
+na.omit(cups_only)
+
+cups_only %>%
+  filter(!is.na(away_team_mean_defense_score))
 
 ```
 
