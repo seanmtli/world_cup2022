@@ -29,6 +29,7 @@ Will need to make two diff models for home and away because of negative value re
 library(tidyverse)
 library(DescTools)
 library(glmnet)
+library(extraDistr)
 data("d.countries")
 int_matches <- read_csv("data/international_matches.csv")
 qatar_teams <- read_delim("data/Qatar2022-teams.csv", delim = ";")
