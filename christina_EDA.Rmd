@@ -7,6 +7,113 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+
+#Introduction 
+
+The FIFA World Cup is the most important inte rnational soccer tournament in the world, bringing in over 5 billion projected viewers across the 29 day tournament. It is held every four years and brings together the best national teams from countries around the globe to compete for the title of world champions. Not only does the world cup provide an opportunity for players to showcase their skills on the biggest stage, it also generates a huge amount of interest and excitement (and thus revenues) and also provides people from all over the world to come together and celebrate their love of soccer, and can help to foster a sense of global unity and understanding.
+
+For a subset of the followers of the World Cup, Sports betting has become a prominent part of the experience. The sports betting industry is a large and growing market that involves people placing bets on the outcome of various sports events. This can include bets on individual games or on the overall results of a season or tournament. According to Bloomberg, a total of $35 billion will be wagered on the 2022 FIFA World Cup, a 65% increase on the previous World Cup. 
+
+An integral part of sports betting is the usage of statistics, as it can provide valuable information about the likelihood of certain outcomes in a given game or match.By using statistics, bettors can analyze their risk, make more informed decisions about which bets to place, and have a better chance of winning and achieving profitable returns. 
+
+In short, the goal of our project is to build a predictive model for the 2022 World Cup games using international football results and FIFA player rankings, in order to provide sports bettors valuable info about the probability specific outcomes to make informed decisions. We hope predict Goal Line (point spread/goal differential) as well as a 3 way moneyline (draw, home win, and away win) distributions. 
+
+Our combined dataset is all international soccer matches from June 2002 to June 2021, with metrics including fifa rank, fifa points, match result, offense/defense/midfield score and more. We will first use a Poisson regression model on both home and away team scores to predict score distribution for each team respectively with a lasso penalty to choose variables and reduce collinearity. Using the relevant predictors given to us by our lasso model, we will then fit a bivariate poisson model that takes into account the dependency between home and away team goal distributions. Since we have a small number of goals, Poisson regression makes sense as it is intended for situations with few counts. Getting results that are probabilistic distributions are important in our case because sports betters are interested in the distribution of results in order to be able to quantify their risk. 
+
+
+#Exploratory Data Analysis 
+
+To start, we examine the distribution of home and away team scores in each match. The plots are right skewed, with home teams and away teams both having peaks at around 1 goal. 
+
+```{r}
+par(mfrow=c(1,2))
+
+ggplot(data = final_dataset) +
+  geom_histogram(mapping = aes(x = home_team_score), binwidth = 0.5)
+
+ggplot(data = final_dataset) +
+  geom_histogram(mapping = aes(x = away_team_score), binwidth = 0.5)
+```
+
+
+```{r}
+final_dataset<- final_dataset%>%
+  mutate(goal_differential = home_team_score-away_team_score,
+         rank_differential =away_team_fifa_rank-home_team_fifa_rank )
+```
+
+
+Next, we examine the distribution of goal differentials when compared to the rank differential. In this case, goal differential is the difference between home team score and away team score (home team score-away team score), and rank_differentials 
+
+
+```{r}
+ggplot(data = final_dataset, mapping = aes(x = goal_differential, y =rank_differential)) + 
+  geom_point()
+```
+
+
+
+
+Next, we examine the distribution of goal differentials. From this we can see that most 
+
+
+```{r}
+ggplot(data = final_dataset) +
+  geom_histogram(mapping = aes(x = goal_differential), binwidth = 0.5)
+```
+
+```{r}
+home_team_ranks <- final_dataset%>%
+  select(home_team,date, home_team_fifa_rank)%>%
+  rename(
+    team = home_team, 
+    fifa_rank = home_team_fifa_rank
+  )
+
+away_team_ranks <- final_dataset%>%
+  select(away_team, date, away_team_fifa_rank)%>%
+  rename(
+    team = away_team, 
+    fifa_rank = away_team_fifa_rank
+  )
+
+team_ranks <-rbind(home_team_ranks, away_team_ranks)
+  
+#  merge(x=home_team_ranks,y=away_team_ranks, 
+  #           by=c("team","date","fifa_rank"))
+top_team_ranks<- team_ranks%>%
+    arrange((team),desc(date)) %>%
+    group_by(team)%>%
+    slice(1) 
+
+#%>%
+ #   arrange(fifa_rank)%>% 
+ #   slice(1:10)
+  
+
+fifa_top_10<-top_team_ranks%>%
+  arrange(fifa_rank)%>%head(10)
+
+fifa_top_10
+```
+
+
+```{r}
+ggplot(data = final_dataset) +
+  geom_histogram(mapping = aes(x = goal_differential), binwidth = 0.5)
+```
+
+
+Home team and away team rank differential vs home team rank differential
+
+```{r}
+ggplot(data = final_dataset, mapping = aes(x = goal_differential, y =rank_differential)) + 
+  geom_point()
+```
+
+
+
+
 ## R Markdown
 
 ```{r}
@@ -40,7 +147,7 @@ final_dataset <- inner_join(matches, box, by = c( "year"= "year",
 
 ```{r}
 final_dataset%>%
-  arrange(desc(date))
+  arrange((date))
 ```
 
 
@@ -112,11 +219,6 @@ fifa_rankings%>%
 ```
 
 
-```{r}
-final_dataset<- final_dataset%>%
-  mutate(goal_differential = home_team_score-away_team_score,
-         rank_differential =away_team_fifa_rank-home_team_fifa_rank )
-```
 
 
 ```{r}
