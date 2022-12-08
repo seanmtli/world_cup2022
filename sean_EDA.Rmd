@@ -21,19 +21,34 @@ matches <- read.csv("data/international_matches.csv")
 box <- read.csv("data/FIFAallMatchBoxData.csv")
 ```
 
-
+naming stuff
 ```{r}
 matches <- matches %>% 
   mutate(year = substr(date,1,4))
 
 box$year <- as.character(box$year)
-  
+```
 
+```{r}
+matches[matches == "Côte d'Ivoire"] <- "Ivory Coast"
+matches[matches == "IR Iran"] <- "Iran"
+matches[matches == "Korea Republic"] <- "South Korea"
+matches[matches == "China PR"] <- "China"
+```
+
+
+
+```{r}
 final_dataset <- inner_join(matches, box, by = c( "year"= "year",
                                             "home_team" = "hname", 
                                             "away_team" = "aname", 
                                             "home_team_score" = "hgoals", 
                                             "away_team_score" = "agoals"))
+```
+
+
+
+```{r}
 
 ```
 
