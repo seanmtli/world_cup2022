@@ -123,6 +123,9 @@ away_preds <- predict(away_model, newx = mat, type = "response")
 sqrt(mean((test_home - home_preds)^2))
 sqrt(mean((test_away - away_preds)^2))
 
+abs(median(test_home - home_preds))
+abs(median(test_away - away_preds))
+
 
 goalline_preds <- home_preds - away_preds
 
