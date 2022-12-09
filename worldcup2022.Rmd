@@ -53,25 +53,50 @@ final_roster_data <- read_csv("data/final_roster_data.csv")
 
 
 cups_only <- int_matches %>%
-  filter(!str_detect(tournament, "Friendly|qualification"), format(date, "%Y") >= 2002) %>%
+  filter(!str_detect(tournament, "Friendly|qualification"), format(date, "%Y") >= 2000) %>%
   select(-home_team_goalkeeper_score, away_team_goalkeeper_score) %>%
   mutate(rank_differential = home_team_score - away_team_score,
          offense_differential = home_team_mean_offense_score - away_team_mean_offense_score,
          defense_differential = home_team_mean_defense_score - away_team_mean_defense_score,
          midfield_differential = home_team_mean_midfield_score - away_team_mean_midfield_score,
-         points_differential = home_team_total_fifa_points - away_team_total_fifa_points 
-         fifa_game = factor(ifelse(tournament == "FIFA World Cup", 1, 0)))
+         points_differential = home_team_total_fifa_points - away_team_total_fifa_points,
+         year = as.numeric(format(date, "%Y"))) 
+# %>%
+#   filter(tournament == "FIFA World Cup")
+
+# Comment out if not using roster, and add caps_diff if you are using ------------------
+# sum_roster <- final_roster_data %>%
+#   mutate(Country = 
+#            case_when(Country == "South Korea" ~ "Korea Republic", 
+#                      Country == "United States" ~ "USA",
+#                      Country == "Iran" ~ "IR Iran",
+#                      Country == "Ivory Coast" ~ "Côte d'Ivoire", 
+#                      Country == "North Korea" ~ "Korea DPR",
+#                      TRUE ~  Country)) %>%
+#   group_by(Country, year) %>%
+#   summarize(median_caps_home = mean(as.numeric(Caps), na.rm = TRUE))
+# 
+# roster_away <- sum_roster %>%
+#   rename(median_caps_away = median_caps_home)
+#   
+# cups_only <- left_join(cups_only, sum_roster, by = c("year" = "year",
+#                                               "home_team" = "Country")) %>%
+#   left_join(roster_away, by = c("year" = "year",
+#                                               "away_team" = "Country")) %>%
+#   mutate(caps_differential = median_caps_home - median_caps_away)
+
+# ----------------------------------------------------------------------- 
 
 # cross validating
 
 set.seed(2)
 cups_only_nona <- na.omit(cups_only)
 n <- nrow(cups_only_nona)
-train_nums <- sample(1:n, size = 0.9*n)
+train_nums <- sample(1:n, size = 0.8*n)
 
 test_data = cups_only_nona[-train_nums, ] %>%
   select(rank_differential, offense_differential, defense_differential, midfield_differential,
-         points_differential, neutral_location, shoot_out, fifa_game)
+         points_differential, neutral_location, shoot_out)
 
 test_home <- cups_only_nona[-train_nums, "home_team_score"] %>%
   pull()
@@ -82,11 +107,11 @@ train_data <- cups_only_nona[train_nums, ]
 
 home_x <- model.matrix(home_team_score ~ rank_differential + offense_differential + 
                          defense_differential + midfield_differential + 
-         points_differential + neutral_location + shoot_out + fifa_game, 
+         points_differential + neutral_location + shoot_out, 
                        data = train_data)
 away_x <- model.matrix(away_team_score ~  + rank_differential + offense_differential + 
                          defense_differential + midfield_differential + 
-         points_differential + neutral_location + shoot_out + fifa_game, 
+         points_differential + neutral_location + shoot_out, 
                        data = train_data)
 
 home_y <- train_data$home_team_score
@@ -139,7 +164,7 @@ sum(goalline_preds  <0)
 ```
 
 
-```{r FINAL BIVPOIS MODEL}
+```{r FINAL BIVPOIS MODEL, warning=FALSE}
 biv_cups_only_nona <- cups_only_nona %>%
   mutate(shoot_out = ifelse(shoot_out == "Yes", 1, 0),
          neutral_location = ifelse(neutral_location == TRUE, 1, 0))
@@ -147,13 +172,18 @@ biv_cups_only_nona <- cups_only_nona %>%
 # need to test accuracy still of bivpoiss with train-test - looks p great though
 set.seed(2)
 n <- nrow(biv_cups_only_nona)
-train_nums <- sample(1:n, size = 0.9*n)
+train_nums <- sample(1:n, size = 0.8*n)
 
 
 fin_mod <- lm.bp(l1 = home_team_score~ rank_differential + points_differential, 
                  l2 = away_team_score~ rank_differential + offense_differential + 
                    points_differential + neutral_location + shoot_out,
-                 l3 = ~rank_differential, zeroL3 = TRUE, data = biv_cups_only_nona)
+                 l3 = ~rank_differential + points_differential, 
+                 data = biv_cups_only_nona)
+
+final_roster_data %>%
+  group_by(Country, year) %>%
+  summarize(mean_caps = median(as.numeric(Caps), na.rm = TRUE))
 ```
 
 ```{r monte carlo}

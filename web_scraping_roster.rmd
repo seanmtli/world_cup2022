@@ -13,6 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(rvest)
+library(tidyverse)s
+library(purrr)
 years <- c(seq(1990,2022,4))
 result = list()
 for (year in years) {
@@ -26,11 +28,17 @@ for (year in years) {
       html_elements("h3 .mw-headline") %>%
       html_text()
     names(tables) <- countries
-    tables <- tables[names(tables) %in% d.countries$name]
+    tables <- tables %>% 
+      keep(function(x) ncol(x)== 7 | ncol(x) == 6)
+    #tables <- tables[names(tables) %in% d.countries$name]
     result <- append(result, list(tables))
 }   
+
+
 names(result) <- years
 ```
+
+
 
 
 ```{r}
