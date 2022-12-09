@@ -27,7 +27,7 @@ Will need to make two diff models for home and away because of negative value re
 
 ```{r}
 library(tidyverse)
-library(DescTools)
+#library(DescTools)
 library(glmnet)
 library(extraDistr)
 data("d.countries")
@@ -50,7 +50,7 @@ final_roster_data <- read_csv("data/final_roster_data.csv")
 cups_only <- int_matches %>%
   filter(!str_detect(tournament, "Friendly|qualification"), format(date, "%Y") >= 2000) %>%
   select(-home_team_goalkeeper_score, away_team_goalkeeper_score) %>%
-  mutate(rank_differential = home_team_score - away_team_score,
+  mutate(rank_differential = home_team_fifa_rank - away_team_fifa_rank,
          offense_differential = home_team_mean_offense_score - away_team_mean_offense_score,
          defense_differential = home_team_mean_defense_score - away_team_mean_defense_score,
          midfield_differential = home_team_mean_midfield_score - away_team_mean_midfield_score,
