@@ -59,7 +59,8 @@ cups_only <- int_matches %>%
          offense_differential = home_team_mean_offense_score - away_team_mean_offense_score,
          defense_differential = home_team_mean_defense_score - away_team_mean_defense_score,
          midfield_differential = home_team_mean_midfield_score - away_team_mean_midfield_score,
-         points_differential = home_team_total_fifa_points - away_team_total_fifa_points)
+         points_differential = home_team_total_fifa_points - away_team_total_fifa_points 
+         fifa_game = factor(ifelse(tournament == "FIFA World Cup", 1, 0)))
 
 # cross validating
 
@@ -70,7 +71,7 @@ train_nums <- sample(1:n, size = 0.9*n)
 
 test_data = cups_only_nona[-train_nums, ] %>%
   select(rank_differential, offense_differential, defense_differential, midfield_differential,
-         points_differential, neutral_location, shoot_out)
+         points_differential, neutral_location, shoot_out, fifa_game)
 
 test_home <- cups_only_nona[-train_nums, "home_team_score"] %>%
   pull()
@@ -81,11 +82,11 @@ train_data <- cups_only_nona[train_nums, ]
 
 home_x <- model.matrix(home_team_score ~ rank_differential + offense_differential + 
                          defense_differential + midfield_differential + 
-         points_differential + neutral_location + shoot_out, 
+         points_differential + neutral_location + shoot_out + fifa_game, 
                        data = train_data)
 away_x <- model.matrix(away_team_score ~  + rank_differential + offense_differential + 
                          defense_differential + midfield_differential + 
-         points_differential + neutral_location + shoot_out, 
+         points_differential + neutral_location + shoot_out + fifa_game, 
                        data = train_data)
 
 home_y <- train_data$home_team_score
@@ -123,8 +124,8 @@ away_preds <- predict(away_model, newx = mat, type = "response")
 sqrt(mean((test_home - home_preds)^2))
 sqrt(mean((test_away - away_preds)^2))
 
-abs(median(test_home - home_preds))
-abs(median(test_away - away_preds))
+median(abs(test_home - home_preds))
+median(abs(test_away - away_preds))
 
 
 goalline_preds <- home_preds - away_preds
