@@ -45,13 +45,8 @@ final_roster_data <- read_csv("data/final_roster_data.csv")
 
 
 ```{r}
-# should we use fifa only matches? we only have roster for these, still about 5000 matches including # qualifying mmatches
-# fifa_only <- int_matches %>%
-#   filter(str_detect(tournament, "FIFA"))
-
 # DECENT UNIVARIATE MODELS???
-
-
+# Making new variables, keeping torunament matches only
 cups_only <- int_matches %>%
   filter(!str_detect(tournament, "Friendly|qualification"), format(date, "%Y") >= 2000) %>%
   select(-home_team_goalkeeper_score, away_team_goalkeeper_score) %>%
@@ -64,39 +59,45 @@ cups_only <- int_matches %>%
 # %>%
 #   filter(tournament == "FIFA World Cup")
 
-# Comment out if not using roster, and add caps_diff if you are using ------------------
-# sum_roster <- final_roster_data %>%
-#   mutate(Country = 
-#            case_when(Country == "South Korea" ~ "Korea Republic", 
-#                      Country == "United States" ~ "USA",
-#                      Country == "Iran" ~ "IR Iran",
-#                      Country == "Ivory Coast" ~ "Côte d'Ivoire", 
-#                      Country == "North Korea" ~ "Korea DPR",
-#                      TRUE ~  Country)) %>%
-#   group_by(Country, year) %>%
-#   summarize(median_caps_home = mean(as.numeric(Caps), na.rm = TRUE))
-# 
-# roster_away <- sum_roster %>%
-#   rename(median_caps_away = median_caps_home)
-#   
+# Summarizing roster data 
+sum_roster <- final_roster_data %>%
+  mutate(Country =
+           case_when(Country == "South Korea" ~ "Korea Republic",
+                     Country == "United States" ~ "USA",
+                     Country == "Iran" ~ "IR Iran",
+                     Country == "Ivory Coast" ~ "Côte d'Ivoire",
+                     Country == "North Korea" ~ "Korea DPR",
+                     TRUE ~  Country)) %>%
+  group_by(Country, year) %>%
+  summarize(median_caps_home = mean(as.numeric(Caps), na.rm = TRUE))
+
+roster_away <- sum_roster %>%
+  rename(median_caps_away = median_caps_home)
+
+# This merges roster data - must adds caps_differential to all models if using ------------------
+
 # cups_only <- left_join(cups_only, sum_roster, by = c("year" = "year",
 #                                               "home_team" = "Country")) %>%
 #   left_join(roster_away, by = c("year" = "year",
 #                                               "away_team" = "Country")) %>%
 #   mutate(caps_differential = median_caps_home - median_caps_away)
 
-# ----------------------------------------------------------------------- 
+# ----------------------------------------------------------------------------------------------
 
-# cross validating
+# Fitting UNIVARIATE models --------------------------------------------------------------------
 
+# Building train and test set for CV
 set.seed(2)
 cups_only_nona <- na.omit(cups_only)
 n <- nrow(cups_only_nona)
 train_nums <- sample(1:n, size = 0.8*n)
 
+
 test_data = cups_only_nona[-train_nums, ] %>%
   select(rank_differential, offense_differential, defense_differential, midfield_differential,
-         points_differential, neutral_location, shoot_out)
+         points_differential, neutral_location, shoot_out) # add cap_diff if using
+
+mat = model.matrix(~., test_data)
 
 test_home <- cups_only_nona[-train_nums, "home_team_score"] %>%
   pull()
@@ -105,19 +106,22 @@ test_away <- cups_only_nona[-train_nums, "away_team_score"] %>%
 
 train_data <- cups_only_nona[train_nums, ]
 
+
+# Model equations 
 home_x <- model.matrix(home_team_score ~ rank_differential + offense_differential + 
                          defense_differential + midfield_differential + 
          points_differential + neutral_location + shoot_out, 
-                       data = train_data)
+                       data = train_data) # add cap_diff if using
 away_x <- model.matrix(away_team_score ~  + rank_differential + offense_differential + 
                          defense_differential + midfield_differential + 
          points_differential + neutral_location + shoot_out, 
-                       data = train_data)
+                       data = train_data) # add cap_diff if using
 
 home_y <- train_data$home_team_score
 away_y <- train_data$away_team_score
 
 
+# Cross validating 
 lambda_grid <- 10^seq(-2, 10, length.out = 5000)
 home_model <- cv.glmnet(home_x, home_y, alpha = 1, lambda = lambda_grid, family = "poisson",
                         nfolds = 5)
@@ -127,25 +131,23 @@ away_model <- cv.glmnet(away_x, away_y, alpha = 1, lambda = lambda_grid, family 
 home_lambda <- home_model$lambda.min
 away_lambda <- away_model$lambda.min
 
+
+# Fitting final models
+
 final_home <- glmnet(home_x, home_y, alpha = 1, lambda = home_lambda, family = "poisson")
 final_away <- glmnet(away_x, away_y, alpha = 1, lambda = away_lambda, family = "poisson")
 
 final_home$beta
-
 final_away$beta
 
-mat = model.matrix(~., test_data)
-
-
+# Generating preds
 home_preds <- predict(home_model, newx = mat, type = "response")
 away_preds <- predict(away_model, newx = mat, type = "response")
-
-
 ```
 
 
 ```{r checking}
-# SANITY CHECKS 
+# SANITY CHECKS FOR ACCURACY
 sqrt(mean((test_home - home_preds)^2))
 sqrt(mean((test_away - away_preds)^2))
 
@@ -169,7 +171,7 @@ biv_cups_only_nona <- cups_only_nona %>%
   mutate(shoot_out = ifelse(shoot_out == "Yes", 1, 0),
          neutral_location = ifelse(neutral_location == TRUE, 1, 0))
 
-# need to test accuracy still of bivpoiss with train-test - looks p great though
+# need to test accuracy still of bivpoiss with train-test - looks p decent though
 set.seed(2)
 n <- nrow(biv_cups_only_nona)
 train_nums <- sample(1:n, size = 0.8*n)
