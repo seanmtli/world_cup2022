@@ -49,55 +49,113 @@ final_roster_data <- read_csv("data/final_roster_data.csv")
 # fifa_only <- int_matches %>%
 #   filter(str_detect(tournament, "FIFA"))
 
-# use final_dataset from sean_eda
+# DECENT UNIVARIATE MODELS???
 
-# setting up framework for model
-test_nums <- sample 
-home_x <- model.matrix(hgoals ~ . - year - hname - aname, data = box)
-away_x <- model.matrix(agoals ~ . - year - hname - aname, data = box)
-home_y <- box$hgoals
-away_y <- box$agoals
+
+cups_only <- int_matches %>%
+  filter(!str_detect(tournament, "Friendly|qualification"), format(date, "%Y") >= 2002) %>%
+  select(-home_team_goalkeeper_score, away_team_goalkeeper_score) %>%
+  mutate(rank_differential = home_team_score - away_team_score,
+         offense_differential = home_team_mean_offense_score - away_team_mean_offense_score,
+         defense_differential = home_team_mean_defense_score - away_team_mean_defense_score,
+         midfield_differential = home_team_mean_midfield_score - away_team_mean_midfield_score,
+         points_differential = home_team_total_fifa_points - away_team_total_fifa_points)
+
+# cross validating
+
+set.seed(2)
+cups_only_nona <- na.omit(cups_only)
+n <- nrow(cups_only_nona)
+train_nums <- sample(1:n, size = 0.9*n)
+
+test_data = cups_only_nona[-train_nums, ] %>%
+  select(rank_differential, offense_differential, defense_differential, midfield_differential,
+         points_differential, neutral_location, shoot_out)
+
+test_home <- cups_only_nona[-train_nums, "home_team_score"] %>%
+  pull()
+test_away <- cups_only_nona[-train_nums, "away_team_score"] %>% 
+  pull()
+
+train_data <- cups_only_nona[train_nums, ]
+
+home_x <- model.matrix(home_team_score ~ rank_differential + offense_differential + 
+                         defense_differential + midfield_differential + 
+         points_differential + neutral_location + shoot_out, 
+                       data = train_data)
+away_x <- model.matrix(away_team_score ~  + rank_differential + offense_differential + 
+                         defense_differential + midfield_differential + 
+         points_differential + neutral_location + shoot_out, 
+                       data = train_data)
+
+home_y <- train_data$home_team_score
+away_y <- train_data$away_team_score
+
+
 lambda_grid <- 10^seq(-2, 10, length.out = 5000)
-home_model <- cv.glmnet(home_x, home_y, alpha = 0.5, lambda = lambda_grid, family = "poisson")
-away_model <- cv.glmnet(away_x, away_y, alpha = 0.5, lambda = lambda_grid, family = "poisson")
+home_model <- cv.glmnet(home_x, home_y, alpha = 1, lambda = lambda_grid, family = "poisson",
+                        nfolds = 5)
+away_model <- cv.glmnet(away_x, away_y, alpha = 1, lambda = lambda_grid, family = "poisson", 
+                        nfolds = 5)
 
 home_lambda <- home_model$lambda.min
 away_lambda <- away_model$lambda.min
 
-final_home <- glmnet(home_x, home_y, alpha = 0.5, lambda = home_lambda, family = "poisson")
-final_away <- glmnet(away_x, away_y, alpha = 0.5, lambda = away_lambda, family = "poisson")
+final_home <- glmnet(home_x, home_y, alpha = 1, lambda = home_lambda, family = "poisson")
+final_away <- glmnet(away_x, away_y, alpha = 1, lambda = away_lambda, family = "poisson")
 
 final_home$beta
 
 final_away$beta
 
+mat = model.matrix(~., test_data)
 
-home_x_2022 <- placeholder # get info from int_matches dataset, use qualifying matches
-away_x_2022 <- placeholder
 
-home_preds <- predict(home_model, newdata = home_x_2022)
-away_preds <- predict(away_model, newdata = home_y_2022)
+home_preds <- predict(home_model, newx = mat, type = "response")
+away_preds <- predict(away_model, newx = mat, type = "response")
+
+
+```
+
+
+```{r checking}
+# SANITY CHECKS 
+sqrt(mean((test_home - home_preds)^2))
+sqrt(mean((test_away - away_preds)^2))
+
 
 goalline_preds <- home_preds - away_preds
+
+outcomes <- na.omit(cups_only)[-train_nums, "home_team_result"] 
+
+outcomes %>%
+  count(home_team_result)
+
+sum(goalline_preds  <0)
+```
+
+
+```{r FINAL BIVPOIS MODEL}
+biv_cups_only_nona <- cups_only_nona %>%
+  mutate(shoot_out = ifelse(shoot_out == "Yes", 1, 0),
+         neutral_location = ifelse(neutral_location == TRUE, 1, 0))
+
+# need to test accuracy still of bivpoiss with train-test - looks p great though
+set.seed(2)
+n <- nrow(biv_cups_only_nona)
+train_nums <- sample(1:n, size = 0.9*n)
+
+
+fin_mod <- lm.bp(l1 = home_team_score~ rank_differential + points_differential, 
+                 l2 = away_team_score~ rank_differential + offense_differential + 
+                   points_differential + neutral_location + shoot_out,
+                 l3 = ~rank_differential, zeroL3 = TRUE, data = biv_cups_only_nona)
+```
+
+```{r monte carlo}
 
 # Monte Carlo Simulation 
 
 # use this to generate data - https://stats.stackexchange.com/questions/27443/generate-data-samples-from-poisson-regression
-fin_mod <- lm.bp(l1 = home_team_score~ home_team_fifa_rank, l2 = away_team_score~away_team_fifa_rank,
-      l1l2 = ~ home_team_fifa_rank + away_team_fifa_rank, zeroL3 = TRUE, data = fifa_only)
-
-simple.bp(x = home_y, y = away_y)
-
-
-
-cups_only <- int_matches %>%
-  filter(!str_detect(tournament, "Friendly|qualification"), format(date, "%Y") >= 2006) %>%
-  select(-home_team_goalkeeper_score, away_team_goalkeeper_score)
-
-na.omit(cups_only)
-
-cups_only %>%
-  filter(!is.na(away_team_mean_defense_score))
-
 ```
 
