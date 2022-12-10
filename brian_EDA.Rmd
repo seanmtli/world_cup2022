@@ -1,0 +1,21 @@
+---
+title: "brian_EDA"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r loading-libraries}
+library(tidyverse)
+library(dplyr)
+library(MASS)
+library(broom)
+library(knitr)
+library(tidyr)
+```
+
+```{r loading-data, message=F, warning=F}
+matches <- read_csv("data/international_matches.csv")
+```

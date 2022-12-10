@@ -37,7 +37,6 @@ matches[matches == "China PR"] <- "China"
 ```
 
 
-
 ```{r}
 final_dataset <- inner_join(matches, box, by = c( "year"= "year",
                                             "home_team" = "hname", 
@@ -49,6 +48,13 @@ final_dataset <- inner_join(matches, box, by = c( "year"= "year",
 
 
 ```{r}
-
+wc_years = list(2006, 2002, 2010,2014,2018,2022)
+final_dataset %>% 
+  filter(year %in% wc_years)
 ```
+
+```{r}
+unique(box$year)
+```
+
 
