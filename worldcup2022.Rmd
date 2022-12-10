@@ -44,6 +44,191 @@ final_roster_data <- read_csv("data/final_roster_data.csv")
 ```
 
 
+
+#Introduction 
+
+The FIFA World Cup is the most important international soccer tournament in the world, bringing in over 5 billion projected viewers across the 29 day tournament. It is held every four years and brings together the best national teams from countries around the globe to compete for the title of world champions. Not only does the world cup provide an opportunity for players to showcase their skills on the biggest stage, it also generates a huge amount of interest and excitement (and thus revenues) and also provides people from all over the world to come together and celebrate their love of soccer, and can help to foster a sense of global unity and understanding.
+
+For a subset of the followers of the World Cup, Sports betting has become a prominent part of the experience. The sports betting industry is a large and growing market that involves people placing bets on the outcome of various sports events. This can include bets on individual games or on the overall results of a season or tournament. According to Bloomberg, a total of $35 billion will be wagered on the 2022 FIFA World Cup, a 65% increase on the previous World Cup. 
+
+An integral part of sports betting is the usage of statistics, as it can provide valuable information about the likelihood of certain outcomes in a given game or match.By using statistics, bettors can analyze their risk, make more informed decisions about which bets to place, and have a better chance of winning and achieving profitable returns. 
+
+In short, the goal of our project is to build a predictive model for the 2022 World Cup games using international football results and FIFA player rankings, in order to provide sports bettors valuable info about the probability specific outcomes to make informed decisions. We hope predict Goal Line (point spread/goal differential) as well as a 3 way moneyline (draw, home win, and away win) distributions. 
+
+Our combined dataset is all international soccer matches from June 2002 to June 2021, with metrics including fifa rank, fifa points, match result, offense/defense/midfield score and more. We will first use a Poisson regression model on both home and away team scores to predict score distribution for each team respectively with a lasso penalty to choose variables and reduce collinearity. Using the relevant predictors given to us by our lasso model, we will then fit a bivariate poisson model that takes into account the dependency between home and away team goal distributions. Since we have a small number of goals, Poisson regression makes sense as it is intended for situations with few counts. Getting results that are probabilistic distributions are important in our case because sports betters are interested in the distribution of results in order to be able to quantify their risk. 
+
+
+#Exploratory Data Analysis 
+
+```{r}
+cups_only_nona <- cups_only_nona%>%
+  mutate(goals_differential = home_team_score - away_team_score,
+         avg_team_differential = (offense_differential + defense_differential + midfield_differential)/3 )
+
+cups_only_nona
+```
+
+
+To start, we examine the distribution of home and away team scores in each match. The plots are right skewed, with home teams and away teams both peaking at around 1 goal in a match, then decreasing exponentially up to around 7 goals a match. 
+
+```{r}
+par(mfrow=c(1,2))
+
+ggplot(data = cups_only_nona) +
+  geom_histogram(mapping = aes(x = home_team_score), binwidth = 0.5)
+
+ggplot(data = cups_only_nona) +
+  geom_histogram(mapping = aes(x = away_team_score), binwidth = 0.5)
+```
+
+Next, we examine the distribution of goal differentials. From this we can see that the distribution of goal_differentials is relatively normal and centered around 0, which indicates that most matches end up in a tie, followed by having a 1 goal difference, and has a smaller probability with higher goal differentials which makes sense. 
+
+```{r}
+ggplot(data = cups_only_nona) +
+  geom_histogram(mapping = aes(x = goals_differential), binwidth = 0.5)
+```
+
+There are some interesting findings when examining the distribution of goal differentials when compared to the rank differential. In this case, goal differential is the difference between home team score and away team score (home team score-away team score), and rank_differentials is the difference between home team rank and away team rank (home team rank - away team rank; thus, if this is positive it means the home team is ranked lower -higher number-  than the away team). We can see that there is a slight association between rank_differential and goals_differential; the more goals difference the home team has  against the away team , the more negative the mean of the rank_differential at that value (meaning home team is ranked higher - a lower number - than the away team). However, we also observe that as the goals differential tends towards 0 from both the positive and negative side, the range of rank_differential increases to a peak of around 200. This signals that the outcome of a tie is likely even for teams with very different ranks. 
+
+
+```{r}
+ggplot(data = cups_only_nona, mapping = aes(x = goals_differential, y =rank_differential)) + 
+  geom_point()
+```
+
+Looking more into the metric of rank_differential, we can also observe where differences in rank plays into home_team_result(win, draw, or loss). We can observe than when the home team wins, the median of the rank_differential is negative, which means that the home team is ranked higher (lower number) than the away team. On the other hand, when the home team loses, the median of the rank_differential is positive, which means that the home team is ranked lower (higher number) than the away team. It's interesting to note that in the instance of a draw, the home team is ranked slightly higher (lower number) than the away team as well. However, we can also notice that there is quite a large overlap in the middle 50th percentile of rank_differential for all three results, and there are also instances of significant amount of outliers, which point us to the uncertainty of soccer matches. 
+
+```{r}
+ggplot(data = cups_only_nona, mapping = aes(x = rank_differential, y =home_team_result)) + 
+   geom_boxplot()
+```
+```{r}
+ggplot(data = cups_only_nona, mapping = aes(x = offense_differential, y =home_team_result)) + 
+   geom_boxplot()
+```
+```{r}
+ggplot(data = cups_only_nona, mapping = aes(x = defense_differential, y =home_team_result)) + 
+   geom_boxplot()
+```
+```{r}
+ggplot(data = cups_only_nona, mapping = aes(x = midfield_differential, y =home_team_result)) + 
+   geom_boxplot()
+```
+
+
+```{r}
+home_team_offense <- cups_only_nona%>%
+  select(home_team,date, home_team_mean_offense_score)%>%
+  rename(
+    team = home_team, 
+    offense_score = home_team_mean_offense_score
+  )
+
+away_team_offense <- cups_only_nona%>%
+  select(away_team, date, away_team_mean_offense_score)%>%
+  rename(
+    team = away_team, 
+    offense_score = away_team_mean_offense_score
+  )
+
+team_offense <-rbind(home_team_offense, away_team_offense)
+  
+#  merge(x=home_team_ranks,y=away_team_ranks, 
+  #           by=c("team","date","fifa_rank"))
+top_team_offense<- team_offense%>%
+    arrange((team),desc(date)) %>%
+    group_by(team)%>%
+    slice(1) 
+
+top_10_offense <- top_team_offense%>%
+  arrange(desc(offense_score))%>%head(10)
+
+```
+
+```{r} 
+home_team_midfield <- cups_only_nona%>%
+  select(home_team,date, home_team_mean_midfield_score)%>%
+  rename(
+    team = home_team, 
+    midfield_score = home_team_mean_midfield_score
+  )
+
+away_team_midfield <- cups_only_nona%>%
+  select(away_team, date, away_team_mean_midfield_score)%>%
+  rename(
+    team = away_team, 
+    midfield_score = away_team_mean_midfield_score
+  )
+
+team_midfield <-rbind(home_team_midfield, away_team_midfield)
+  
+top_team_midfield<- team_midfield%>%
+    arrange((team),desc(date)) %>%
+    group_by(team)%>%
+    slice(1) 
+
+top_10_midfield <- top_team_midfield%>%
+  arrange(desc(midfield_score))%>%head(10)
+
+```
+
+```{r}
+home_team_defense <- cups_only_nona%>%
+  select(home_team,date, home_team_mean_defense_score)%>%
+  rename(
+    team = home_team, 
+    defense_score = home_team_mean_defense_score
+  )
+
+away_team_defense <- cups_only_nona%>%
+  select(away_team, date, away_team_mean_defense_score)%>%
+  rename(
+    team = away_team, 
+    defense_score = away_team_mean_defense_score
+  )
+
+team_defense <-rbind(home_team_defense, away_team_defense)
+  
+#  merge(x=home_team_ranks,y=away_team_ranks, 
+  #           by=c("team","date","fifa_rank"))
+top_team_defense<- team_defense%>%
+    arrange((team),desc(date)) %>%
+    group_by(team)%>%
+    slice(1) 
+
+top_10_defense <- top_team_defense%>%
+  arrange(desc(defense_score))%>%head(10)
+```
+
+```{r}
+top_team_int<- full_join(top_team_defense,top_team_midfield, by = c("team", "date"))
+
+top_team_all<-full_join(top_team_int, top_team_offense, by=c("team", "date"))
+
+top_15_team<-top_team_all%>%
+  mutate(average_team_score = (defense_score + midfield_score+offense_score)/3)%>%
+  arrange(desc(average_team_score))%>%
+  head(15)
+  
+
+top_15_team
+```
+
+In the visualization below, we can examine the defense score, midfield score, offense score, and average team score (taken as an average of defense, midfield, and offense score with equal weighting) for the 15 teams with the highest average team score at its most recent date of ranking. The defense and midfield scores are taken as the average FIFA game score of the 4 highest ranked defense and midfield players of the team, while the offense score is taken as the average FIFA game score of the 3 highest ranked attacking players of the team. We can observe that most of the top 15 teams are pretty consistent across their offense, midfield and defense scores, though one factor may be a slight strong suit for the team. 
+
+
+```{r}
+library(reshape2)
+team_scores <- melt(top_15_team, id = c("team","date"))
+ggplot(team_scores, aes(fill=variable, y=value, x=reorder(team,+value))) + 
+    geom_bar(position="dodge", stat="identity")+labs(x="team",y="score")+
+    coord_flip()
+```
+
+
+
+#MODELING 
+
 ```{r}
 # DECENT UNIVARIATE MODELS???
 # Making new variables, keeping torunament matches only
