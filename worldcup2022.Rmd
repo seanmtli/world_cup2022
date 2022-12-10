@@ -61,6 +61,22 @@ The dataset we use is a set of thousands of international soccer matches from Ju
 #Exploratory Data Analysis 
 
 ```{r}
+# Making new variables, keeping torunament matches only
+cups_only <- int_matches %>%
+  filter(!str_detect(tournament, "Friendly|qualification"), format(date, "%Y") >= 2000) %>%
+  select(-home_team_goalkeeper_score, away_team_goalkeeper_score) %>%
+  mutate(rank_differential = away_team_fifa_rank - home_team_fifa_rank, #away - home so positive rank differential means home team is paper
+         offense_differential = home_team_mean_offense_score - away_team_mean_offense_score,
+         defense_differential = home_team_mean_defense_score - away_team_mean_defense_score,
+         midfield_differential = home_team_mean_midfield_score - away_team_mean_midfield_score,
+         points_differential = home_team_total_fifa_points - away_team_total_fifa_points,
+         year = as.numeric(format(date, "%Y"))) 
+
+cups_only_nona <- na.omit(cups_only)
+
+```
+
+```{r}
 cups_only_nona <- cups_only_nona%>%
   mutate(goals_differential = home_team_score - away_team_score,
          avg_team_differential = (offense_differential + defense_differential + midfield_differential)/3 )
@@ -88,15 +104,16 @@ ggplot(data = cups_only_nona) +
   geom_histogram(mapping = aes(x = goals_differential), binwidth = 0.5)
 ```
 
-There are some interesting findings when examining the distribution of goal differentials when compared to the rank differential. In this case, goal differential is the difference between home team score and away team score (home team score-away team score), and rank_differentials is the difference between home team rank and away team rank (home team rank - away team rank; thus, if this is positive it means the home team is ranked lower -higher number-  than the away team). We can see that there is a slight association between rank_differential and goals_differential; the more goals difference the home team has  against the away team , the more negative the mean of the rank_differential at that value (meaning home team is ranked higher - a lower number - than the away team). However, we also observe that as the goals differential tends towards 0 from both the positive and negative side, the range of rank_differential increases to a peak of around 200. This signals that the outcome of a tie is likely even for teams with very different ranks. 
+There are some interesting findings when examining the distribution of goal differentials when compared to the rank differential. In this case, goal differential is the difference between home team score and away team score (home team score-away team score), and rank_differentials is the difference between away team rank and home team rank (away team rank - home team rank; thus, if this is positive it means the home team is 
+ranked higher -lower number-  than the away team). We can see that there is a slight association between rank_differential and goals_differential; the more positive the rank_differential is, the greater the goal differential between the home and away team, meaning that a greater difference in rank is associated with a slighter greater difference in scores. However, we also observe that rank_differential has the greatest range when goal_differential is 0, which signals that the outcome of a tie is likely even for teams with very different ranks. 
 
 
 ```{r}
-ggplot(data = cups_only_nona, mapping = aes(x = goals_differential, y =rank_differential)) + 
+ggplot(data = cups_only_nona, mapping = aes(x =rank_differential, y =goals_differential)) + 
   geom_point()
 ```
 
-Looking more into the metric of rank_differential, we can also observe where differences in rank plays into home_team_result(win, draw, or loss). We can observe than when the home team wins, the median of the rank_differential is negative, which means that the home team is ranked higher (lower number) than the away team. On the other hand, when the home team loses, the median of the rank_differential is positive, which means that the home team is ranked lower (higher number) than the away team. It's interesting to note that in the instance of a draw, the home team is ranked slightly higher (lower number) than the away team as well. However, we can also notice that there is quite a large overlap in the middle 50th percentile of rank_differential for all three results, and there are also instances of significant amount of outliers, which point us to the uncertainty of soccer matches. 
+Looking more into the metric of rank_differential, we can also observe where differences in rank plays into home_team_result(win, draw, or loss). We can observe than when the home team wins, the median of the rank_differential is around 10, which means that when the home team wins, it is ranked 10 spots higher (lower number) than the away team. On the other hand, when the home team loses, the median of the rank_differential is around -8, which means that the home team is ranked 8 spots lower (higher number) than the away team. It's interesting to note that in the instance of a draw, the home team is ranked slightly (around 1 spot) higher (lower number)  than the away team as well. However, we can also notice that there is quite a large overlap in the middle 50th percentile of rank_differential for all three results, and there are also instances of significant amount of outliers, which point us to the uncertainty of soccer matches. 
 
 ```{r}
 ggplot(data = cups_only_nona, mapping = aes(x = rank_differential, y =home_team_result)) + 
@@ -231,18 +248,6 @@ ggplot(team_scores, aes(fill=variable, y=value, x=reorder(team,+value))) +
 
 ```{r}
 # DECENT UNIVARIATE MODELS???
-# Making new variables, keeping torunament matches only
-cups_only <- int_matches %>%
-  filter(!str_detect(tournament, "Friendly|qualification"), format(date, "%Y") >= 2000) %>%
-  select(-home_team_goalkeeper_score, away_team_goalkeeper_score) %>%
-  mutate(rank_differential = home_team_fifa_rank - away_team_fifa_rank,
-         offense_differential = home_team_mean_offense_score - away_team_mean_offense_score,
-         defense_differential = home_team_mean_defense_score - away_team_mean_defense_score,
-         midfield_differential = home_team_mean_midfield_score - away_team_mean_midfield_score,
-         points_differential = home_team_total_fifa_points - away_team_total_fifa_points,
-         year = as.numeric(format(date, "%Y"))) 
-# %>%
-#   filter(tournament == "FIFA World Cup")
 
 # Summarizing roster data 
 sum_roster <- final_roster_data %>%
