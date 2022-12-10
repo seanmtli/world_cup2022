@@ -272,10 +272,12 @@ roster_away <- sum_roster %>%
 # Fitting UNIVARIATE models --------------------------------------------------------------------
 
 # Building train and test set for CV
-set.seed(2)
+set.seed(3)
 cups_only_nona <- na.omit(cups_only)
 n <- nrow(cups_only_nona)
-train_nums <- sample(1:n, size = 0.8*n)
+
+
+train_nums <- seq(1, 0.8* nrow(cups_only_nona), 1)
 
 
 test_data = cups_only_nona[-train_nums, ] %>%
@@ -308,7 +310,8 @@ away_y <- train_data$away_team_score
 
 # Cross validating 
 lambda_grid <- 10^seq(-2, 10, length.out = 5000)
-home_model <- cv.glmnet(home_x, home_y, alpha = 1, lambda = lambda_grid, family = "poisson",
+home_model <- cv.glmnet(home_x, home_y, alpha = 1, 
+                        lambda = lambda_grid, family = "poisson",
                         nfolds = 5)
 away_model <- cv.glmnet(away_x, away_y, alpha = 1, lambda = lambda_grid, family = "poisson", 
                         nfolds = 5)
