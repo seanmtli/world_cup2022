@@ -25,13 +25,14 @@ Our combined dataset is all international soccer matches from June 2002 to June 
 
 ```{r}
 cups_only_nona <- cups_only_nona%>%
-  mutate(goals_differential = home_team_score - away_team_score)
+  mutate(goals_differential = home_team_score - away_team_score,
+         avg_team_differential = (offense_differential + defense_differential + midfield_differential)/3 )
 
 cups_only_nona
 ```
 
 
-To start, we examine the distribution of home and away team scores in each match. The plots are right skewed, with home teams and away teams both having peaks at around 1 goal. 
+To start, we examine the distribution of home and away team scores in each match. The plots are right skewed, with home teams and away teams both peaking at around 1 goal in a match, then decreasing exponentially up to around 7 goals a match. 
 
 ```{r}
 par(mfrow=c(1,2))
@@ -43,6 +44,14 @@ ggplot(data = cups_only_nona) +
   geom_histogram(mapping = aes(x = away_team_score), binwidth = 0.5)
 ```
 
+Next, we examine the distribution of goal differentials. From this we can see that most 
+
+
+```{r}
+ggplot(data = cups_only_nona) +
+  geom_histogram(mapping = aes(x = goals_differential), binwidth = 0.5)
+```
+
 
 ```{r}
 final_dataset<- final_dataset%>%
@@ -51,24 +60,156 @@ final_dataset<- final_dataset%>%
 ```
 
 
-Next, we examine the distribution of goal differentials when compared to the rank differential. In this case, goal differential is the difference between home team score and away team score (home team score-away team score), and rank_differentials is the difference between home team rank and away team rank (home team rank - away team rank; if this is positive it means the home team is ranked lower -higher number-  than the away team). 
+Next, we examine the distribution of goal differentials when compared to the rank differential. In this case, goal differential is the difference between home team score and away team score (home team score-away team score), and rank_differentials is the difference between home team rank and away team rank (home team rank - away team rank; thus, if this is positive it means the home team is ranked lower -higher number-  than the away team). We can see that there is a slight association between rank_differential and goals_differential; the more goals difference the home team has  against the away team , the more negative the mean of the rank_differential at that value (meaning home team is ranked higher - a lower number - than the away team). However, we also observe that as the goals differential tends towards 0 from both the positive and negative side, the range of rank_differential increases to a peak of around 200. This signals that the outcome of a tie is likely even for teams with very different ranks. 
+
 
 ```{r}
 ggplot(data = cups_only_nona, mapping = aes(x = goals_differential, y =rank_differential)) + 
   geom_point()
 ```
 
-Generally, as the point 
+Looking more into the metric of rank_differential, we can also observe where differences in rank plays into home_team_result(win, draw, or loss). We can observe than when the home team wins, the median of the rank_differential is negative, which means that the home team is ranked higher (lower number) than the away team. On the other hand, when the home team loses, the median of the rank_differential is positive, which means that the home team is ranked lower (higher number) than the away team. It's interesting to note that in the instance of a draw, the home team is ranked slightly higher (lower number) than the away team as well. However, we can also notice that there is quite a large overlap in the middle 50th percentile of rank_differential for all three results, and there are also instances of significant amount of outliers, which point us to the uncertainty of soccer matches. 
 
-
-
-Next, we examine the distribution of goal differentials. From this we can see that most 
+```{r}
+ggplot(data = cups_only_nona, mapping = aes(x = rank_differential, y =home_team_result)) + 
+   geom_boxplot()
+```
+```{r}
+ggplot(data = cups_only_nona, mapping = aes(x = offense_differential, y =home_team_result)) + 
+   geom_boxplot()
+```
+```{r}
+ggplot(data = cups_only_nona, mapping = aes(x = defense_differential, y =home_team_result)) + 
+   geom_boxplot()
+```
+```{r}
+ggplot(data = cups_only_nona, mapping = aes(x = midfield_differential, y =home_team_result)) + 
+   geom_boxplot()
+```
 
 
 ```{r}
-ggplot(data = cups_only_nona) +
-  geom_histogram(mapping = aes(x = goals_differential), binwidth = 0.5)
+home_team_offense <- cups_only_nona%>%
+  select(home_team,date, home_team_mean_offense_score)%>%
+  rename(
+    team = home_team, 
+    offense_score = home_team_mean_offense_score
+  )
+
+away_team_offense <- cups_only_nona%>%
+  select(away_team, date, away_team_mean_offense_score)%>%
+  rename(
+    team = away_team, 
+    offense_score = away_team_mean_offense_score
+  )
+
+team_offense <-rbind(home_team_offense, away_team_offense)
+  
+#  merge(x=home_team_ranks,y=away_team_ranks, 
+  #           by=c("team","date","fifa_rank"))
+top_team_offense<- team_offense%>%
+    arrange((team),desc(date)) %>%
+    group_by(team)%>%
+    slice(1) 
+
+top_10_offense <- top_team_offense%>%
+  arrange(desc(offense_score))%>%head(10)
+
 ```
+
+```{r} 
+home_team_midfield <- cups_only_nona%>%
+  select(home_team,date, home_team_mean_midfield_score)%>%
+  rename(
+    team = home_team, 
+    midfield_score = home_team_mean_midfield_score
+  )
+
+away_team_midfield <- cups_only_nona%>%
+  select(away_team, date, away_team_mean_midfield_score)%>%
+  rename(
+    team = away_team, 
+    midfield_score = away_team_mean_midfield_score
+  )
+
+team_midfield <-rbind(home_team_midfield, away_team_midfield)
+  
+top_team_midfield<- team_midfield%>%
+    arrange((team),desc(date)) %>%
+    group_by(team)%>%
+    slice(1) 
+
+top_10_midfield <- top_team_midfield%>%
+  arrange(desc(midfield_score))%>%head(10)
+
+```
+
+```{r}
+home_team_defense <- cups_only_nona%>%
+  select(home_team,date, home_team_mean_defense_score)%>%
+  rename(
+    team = home_team, 
+    defense_score = home_team_mean_defense_score
+  )
+
+away_team_defense <- cups_only_nona%>%
+  select(away_team, date, away_team_mean_defense_score)%>%
+  rename(
+    team = away_team, 
+    defense_score = away_team_mean_defense_score
+  )
+
+team_defense <-rbind(home_team_defense, away_team_defense)
+  
+#  merge(x=home_team_ranks,y=away_team_ranks, 
+  #           by=c("team","date","fifa_rank"))
+top_team_defense<- team_defense%>%
+    arrange((team),desc(date)) %>%
+    group_by(team)%>%
+    slice(1) 
+
+top_10_defense <- top_team_defense%>%
+  arrange(desc(defense_score))%>%head(10)
+```
+
+```{r}
+top_team_int<- full_join(top_team_defense,top_team_midfield, by = c("team", "date"))
+
+top_team_all<-full_join(top_team_int, top_team_offense, by=c("team", "date"))
+
+top_15_team<-top_team_all%>%
+  mutate(average_team_score = (defense_score + midfield_score+offense_score)/3)%>%
+  arrange(desc(average_team_score))%>%
+  head(15)
+  
+
+top_15_team
+```
+
+In the visualization below, we can examine the defense score, midfield score, offense score, and average team score (taken as an average of defense, midfield, and offense score with equal weighting) for the 15 teams with the highest average team score at its most recent date of ranking. The defense and midfield scores are taken as the average FIFA game score of the 4 highest ranked defense and midfield players of the team, while the offense score is taken as the average FIFA game score of the 3 highest ranked attacking players of the team. We can observe that most of the top 15 teams are pretty consistent across their offense, midfield and defense scores, though one factor may be a slight strong suit for the team. 
+
+
+```{r}
+library(reshape2)
+team_scores <- melt(top_15_team, id = c("team","date"))
+ggplot(team_scores, aes(fill=variable, y=value, x=reorder(team,+value))) + 
+    geom_bar(position="dodge", stat="identity")+labs(x="team",y="score")+
+    coord_flip()
+```
+
+
+
+
+
+
+
+
+
+
+
+## Extra EDA Working 
+
+
 
 ```{r}
 home_team_ranks <- cups_only_nona%>%
@@ -106,11 +247,6 @@ fifa_top_10
 ```
 
 
-```{r}
-ggplot(data = cups_only_nona) +
-  geom_histogram(mapping = aes(x = goals_differential), binwidth = 0.5)
-```
-
 
 Home team and away team rank differential vs home team rank differential
 
@@ -124,14 +260,13 @@ ggplot(data = final_dataset, mapping = aes(x = goal_differential, y =rank_differ
 library(tidyverse)
 ```
 
-## Introduction
+
 
 
 ```{r}
 cups_only_nona%>%
   arrange((date))
 ```
-
 
 
 Top 10 FIFA ranked teams 
@@ -218,14 +353,14 @@ ggplot(data = final_dataset, mapping = aes(x = hPossesion, y =home_team_result))
 Best 10 offensive teams 
 
 ```{r}
-home_team_offense <- final_dataset%>%
+home_team_offense <- cups_only_nona%>%
   select(home_team,date, home_team_mean_offense_score)%>%
   rename(
     team = home_team, 
     offense_score = home_team_mean_offense_score
   )
 
-away_team_offense <- final_dataset%>%
+away_team_offense <- cups_only_nona%>%
   select(away_team, date, away_team_mean_offense_score)%>%
   rename(
     team = away_team, 
@@ -244,20 +379,19 @@ top_team_offense<- team_offense%>%
 top_10_offense <- top_team_offense%>%
   arrange(desc(offense_score))%>%head(10)
 
-top_10_offense
 ```
 
 
 Best 10 midfield teams 
 ```{r} 
-home_team_midfield <- final_dataset%>%
+home_team_midfield <- cups_only_nona%>%
   select(home_team,date, home_team_mean_midfield_score)%>%
   rename(
     team = home_team, 
     midfield_score = home_team_mean_midfield_score
   )
 
-away_team_midfield <- final_dataset%>%
+away_team_midfield <- cups_only_nona%>%
   select(away_team, date, away_team_mean_midfield_score)%>%
   rename(
     team = away_team, 
@@ -274,21 +408,19 @@ top_team_midfield<- team_midfield%>%
 top_10_midfield <- top_team_midfield%>%
   arrange(desc(midfield_score))%>%head(10)
 
-
-top_10_midfield
 ```
 
 Best 10 defensive teams
 
 ```{r}
-home_team_defense <- final_dataset%>%
+home_team_defense <- cups_only_nona%>%
   select(home_team,date, home_team_mean_defense_score)%>%
   rename(
     team = home_team, 
     defense_score = home_team_mean_defense_score
   )
 
-away_team_defense <- final_dataset%>%
+away_team_defense <- cups_only_nona%>%
   select(away_team, date, away_team_mean_defense_score)%>%
   rename(
     team = away_team, 
@@ -306,9 +438,39 @@ top_team_defense<- team_defense%>%
 
 top_10_defense <- top_team_defense%>%
   arrange(desc(defense_score))%>%head(10)
-
-top_10_defense 
 ```
+
+```{r}
+top_team_int<- full_join(top_team_defense,top_team_midfield, by = c("team", "date"))
+top_team_int
+
+top_team_all<-full_join(top_team_int, top_team_offense, by=c("team", "date"))
+
+top_15_team<-top_team_all%>%
+  mutate(average_team_score = (defense_score + midfield_score+offense_score)/3)%>%
+  arrange(desc(average_team_score))%>%
+  head(15)
+  
+
+top_15_team
+```
+
+```{r}
+library(reshape2)
+team_scores <- melt(top_15_team, id = c("team","date"))
+
+head(team_scores)
+```
+
+
+```{r}
+ggplot(team_scores, aes(fill=variable, y=value, x=reorder(team,+value))) + 
+    geom_bar(position="dodge", stat="identity")+
+    coord_flip()
+```
+
+
+
 
 
 ```{r}
