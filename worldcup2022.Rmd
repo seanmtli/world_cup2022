@@ -248,6 +248,18 @@ ggplot(team_scores, aes(fill=variable, y=value, x=reorder(team,+value))) +
 
 ```{r}
 # DECENT UNIVARIATE MODELS???
+# Making new variables, keeping torunament matches only
+cups_only <- int_matches %>%
+  filter(!str_detect(tournament, "Friendly|qualification"), format(date, "%Y") >= 2000) %>%
+  select(-home_team_goalkeeper_score, away_team_goalkeeper_score) %>%
+  mutate(rank_differential = home_team_fifa_rank - away_team_fifa_rank,
+         offense_differential = home_team_mean_offense_score - away_team_mean_offense_score,
+         defense_differential = home_team_mean_defense_score - away_team_mean_defense_score,
+         midfield_differential = home_team_mean_midfield_score - away_team_mean_midfield_score,
+         points_differential = home_team_total_fifa_points - away_team_total_fifa_points,
+         year = as.numeric(format(date, "%Y"))) 
+# %>%
+#   filter(tournament == "FIFA World Cup")
 
 # Summarizing roster data 
 sum_roster <- final_roster_data %>%
@@ -277,20 +289,20 @@ roster_away <- sum_roster %>%
 # Fitting UNIVARIATE models --------------------------------------------------------------------
 
 # Building train and test set for CV
-set.seed(3)
+set.seed(1)
 cups_only_nona <- na.omit(cups_only)
 n <- nrow(cups_only_nona)
 
 
 train_nums <- seq(1, 0.8* nrow(cups_only_nona), 1)
 
-
+#all the X variables for test data
 test_data = cups_only_nona[-train_nums, ] %>%
   select(rank_differential, offense_differential, defense_differential, midfield_differential,
          points_differential, neutral_location, shoot_out) # add cap_diff if using
-
+#predict function needs a mat, makes categorical into dummy vars
 mat = model.matrix(~., test_data)
-
+# actual y - values
 test_home <- cups_only_nona[-train_nums, "home_team_score"] %>%
   pull()
 test_away <- cups_only_nona[-train_nums, "away_team_score"] %>% 
@@ -365,21 +377,63 @@ biv_cups_only_nona <- cups_only_nona %>%
          neutral_location = ifelse(neutral_location == TRUE, 1, 0))
 
 # need to test accuracy still of bivpoiss with train-test - looks p decent though
-set.seed(2)
+set.seed(1)
 n <- nrow(biv_cups_only_nona)
 train_nums <- sample(1:n, size = 0.8*n)
 
+test_home <- biv_cups_only_nona[-train_nums, "home_team_score"]
+test_away <- biv_cups_only_nona[-train_nums, "away_team_score"]
 
-fin_mod <- lm.bp(l1 = home_team_score~ rank_differential + points_differential, 
-                 l2 = away_team_score~ rank_differential + offense_differential + 
-                   points_differential + neutral_location + shoot_out,
-                 l3 = ~rank_differential + points_differential, 
-                 data = biv_cups_only_nona)
 
-final_roster_data %>%
-  group_by(Country, year) %>%
-  summarize(mean_caps = median(as.numeric(Caps), na.rm = TRUE))
+td1 <- biv_cups_only_nona[-train_nums, ] %>%
+         select(rank_differential, points_differential, offense_differential ,
+                   defense_differential,midfield_differential,neutral_location ) %>% 
+  mutate(int_col = rep(1,nrow(.))) %>% 
+  relocate(int_col)
+td2 <- biv_cups_only_nona[-train_nums, ] %>%
+         select(offense_differential, 
+                   neutral_location ,midfield_differential) %>% 
+  mutate(int_col = rep(1,nrow(.))) %>% 
+  relocate(int_col)
+td3 <- biv_cups_only_nona[-train_nums, ] %>%
+         select(offense_differential , 
+                   neutral_location , midfield_differential) %>% 
+  mutate(int_col = rep(1,nrow(.))) %>% 
+  relocate(int_col)
+
+
+mat = model.matrix(~., test_data)
+
+test_home <- biv_cups_only_nona[-train_nums, "home_team_score"] %>%
+  pull()
+test_away <- biv_cups_only_nona[-train_nums, "away_team_score"] %>% 
+  pull()
+
+train_data_biv <- biv_cups_only_nona[train_nums, ]
+
+
+#not split... make train data
+fin_mod <- lm.bp(l1 = home_team_score~ rank_differential + points_differential + offense_differential +
+                   defense_differential+midfield_differential+neutral_location ,
+                 l2 = away_team_score~ offense_differential + 
+                   neutral_location + midfield_differential,
+                 l3 = ~ offense_differential + 
+                   neutral_location + midfield_differential, 
+                 data = train_data_biv)
+
 ```
+
+
+```{r}
+# ok multiply
+exp(as.matrix(td1) %*% as.matrix(fin_mod$beta1))
+exp(as.matrix(td2) %*% as.matrix(fin_mod$beta2))
+exp(as.matrix(td3) %*% as.matrix(fin_mod$beta3))
+
+
+rbvpois(1, 4.620, 1.30, 0.0748)
+```
+
 
 ```{r monte carlo}
 
@@ -387,4 +441,6 @@ final_roster_data %>%
 
 # use this to generate data - https://stats.stackexchange.com/questions/27443/generate-data-samples-from-poisson-regression
 ```
+
+
 
