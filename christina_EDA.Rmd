@@ -7,6 +7,33 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+#Data 
+
+```{r}
+# Making new variables, keeping torunament matches only
+cups_only <- int_matches %>%
+  filter(!str_detect(tournament, "Friendly|qualification"), format(date, "%Y") >= 2000) %>%
+  select(-home_team_goalkeeper_score, away_team_goalkeeper_score) %>%
+  mutate(rank_differential = away_team_fifa_rank - home_team_fifa_rank, #away - home so positive rank differential means home team is paper
+         offense_differential = home_team_mean_offense_score - away_team_mean_offense_score,
+         defense_differential = home_team_mean_defense_score - away_team_mean_defense_score,
+         midfield_differential = home_team_mean_midfield_score - away_team_mean_midfield_score,
+         points_differential = home_team_total_fifa_points - away_team_total_fifa_points,
+         year = as.numeric(format(date, "%Y"))) 
+
+cups_only_nona <- na.omit(cups_only)
+
+```
+
+```{r}
+cups_only_nona <- cups_only_nona%>%
+  mutate(goals_differential = home_team_score - away_team_score,
+         avg_team_differential = (offense_differential + defense_differential + midfield_differential)/3 )
+
+cups_only_nona
+```
+
+
 
 #Introduction 
 
@@ -22,6 +49,49 @@ Our combined dataset is all international soccer matches from June 2002 to June 
 
 
 #Exploratory Data Analysis 
+```{r}
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+library(tidyverse)
+#library(DescTools)
+library(glmnet)
+library(extraDistr)
+data("d.countries")
+source("biv-pois-functions/lm.bp.R")
+source("biv-pois-functions/bivpois.table.R")
+source("biv-pois-functions/newnamesbeta.R")
+source("biv-pois-functions/pbivpois.R")
+source("biv-pois-functions/simple.bp.R")
+source("biv-pois-functions/splitbeta.R")
+int_matches <- read_csv("data/international_matches.csv")
+qatar_teams <- read_delim("data/Qatar2022-teams.csv", delim = ";")
+matches_sched <- read_delim("data/matchs-schedule.csv", delim = ";")
+final_roster_data <- read_csv("data/final_roster_data.csv")
+```
+
+
+```{r}
+match_box_data <- read_csv("data/FIFAallMatchBoxData.csv")
+```
+
+```{r}
+# Making new variables, keeping torunament matches only
+cups_only <- int_matches %>%
+  filter(!str_detect(tournament, "Friendly|qualification"), format(date, "%Y") >= 2000) %>%
+  select(-home_team_goalkeeper_score, away_team_goalkeeper_score) %>%
+  mutate(rank_differential = away_team_fifa_rank - home_team_fifa_rank, #away - home so positive rank differential means home team is paper
+         offense_differential = home_team_mean_offense_score - away_team_mean_offense_score,
+         defense_differential = home_team_mean_defense_score - away_team_mean_defense_score,
+         midfield_differential = home_team_mean_midfield_score - away_team_mean_midfield_score,
+         points_differential = home_team_total_fifa_points - away_team_total_fifa_points,
+         year = as.numeric(format(date, "%Y"))) 
+
+cups_only_nona <- na.omit(cups_only)
+
+```
 
 ```{r}
 cups_only_nona <- cups_only_nona%>%
@@ -31,6 +101,30 @@ cups_only_nona <- cups_only_nona%>%
 cups_only_nona
 ```
 
+```{r}
+match_box_data
+```
+
+
+```{r}
+cups_only_nona_new<-inner_join(cups_only_nona, match_box_data, by = c("year"="year",
+                                                            "home_team" = "hname",
+                                                        "away_team" = "aname",
+                                                        "home_team_score"="hgoals",
+                                                        "away_team_score"="agoals")
+                                                            )
+
+
+
+cups_only_nona_new
+#merge cups_only_nona with match_box_data
+
+```
+
+
+
+
+#EDA 
 
 To start, we examine the distribution of home and away team scores in each match. The plots are right skewed, with home teams and away teams both peaking at around 1 goal in a match, then decreasing exponentially up to around 7 goals a match. 
 
@@ -64,7 +158,7 @@ Next, we examine the distribution of goal differentials when compared to the ran
 
 
 ```{r}
-ggplot(data = cups_only_nona, mapping = aes(x = goals_differential, y =rank_differential)) + 
+ggplot(data = cups_only_nona, mapping = aes(y = goals_differential, x =rank_differential)) + 
   geom_point()
 ```
 
@@ -197,6 +291,27 @@ ggplot(team_scores, aes(fill=variable, y=value, x=reorder(team,+value))) +
     coord_flip()
 ```
 
+```{r}
+install.packages("factoextra")
+library(factoextra)
+
+```
+
+
+
+
+
+
+```{r}
+install.packages("dplyr")                            # Install dplyr
+library("dplyr")                                     # Load dplyr
+```
+
+
+```{r}
+numeric_only<-select_if(cups_only_nona, is.numeric)
+res<- cor(cups_only_nona)
+```
 
 
 
@@ -468,9 +583,26 @@ ggplot(team_scores, aes(fill=variable, y=value, x=reorder(team,+value))) +
     geom_bar(position="dodge", stat="identity")+
     coord_flip()
 ```
+```{r}
+install.packages("ggcorrplot")
+```
+```{r}
+library(dplyr)
+library(corrplot)
+
+```
 
 
+```{r}
+numeric_vars<- cups_only_nona %>%
+  select(where(is.numeric))
 
+numeric_vars
+```
+
+```{r}
+corrplot(numeric_vars)
+```
 
 
 ```{r}
