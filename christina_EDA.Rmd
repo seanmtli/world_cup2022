@@ -48,7 +48,7 @@ In short, the goal of our project is to build a predictive model for the 2022 Wo
 Our combined dataset is all international soccer matches from June 2002 to June 2021, with metrics including fifa rank, fifa points, match result, offense/defense/midfield score and more. We will first use a Poisson regression model on both home and away team scores to predict score distribution for each team respectively with a lasso penalty to choose variables and reduce collinearity. Using the relevant predictors given to us by our lasso model, we will then fit a bivariate poisson model that takes into account the dependency between home and away team goal distributions. Since we have a small number of goals, Poisson regression makes sense as it is intended for situations with few counts. Getting results that are probabilistic distributions are important in our case because sports betters are interested in the distribution of results in order to be able to quantify their risk. 
 
 
-#Exploratory Data Analysis 
+#Joining Code 
 ```{r}
 library(dplyr)
 library(ggplot2)
@@ -116,9 +116,111 @@ cups_only_nona_new<-inner_join(cups_only_nona, match_box_data, by = c("year"="ye
 
 
 
-cups_only_nona_new
+cups_only_nona_new<- cups_only_nona_new%>%
+  mutate(possesion_differential = hPossesion-aPossesion,
+         SOT_differential = hshotsOnTarget - ashotsOnTarget,
+         shots_differential=hshots-ashots,
+         yellowcard_differential=hyellowCards-ayellowCards,
+         redcard_differential=hredCards-aredCards,
+         foul_differential=hfouls-afouls,
+         saves_differential=hsaves-asaves)
 #merge cups_only_nona with match_box_data
 
+```
+
+
+#MODELING 
+
+```{r}
+# DECENT UNIVARIATE MODELS???
+
+# Fitting UNIVARIATE models --------------------------------------------------------------------
+
+# Building train and test set for CV
+set.seed(1)
+n <- nrow(cups_only_nona_new)
+
+
+train_nums <- seq(1, 0.8* nrow(cups_only_nona_new), 1)
+
+#all the X variables for test data
+test_data = cups_only_nona_new[-train_nums, ] %>%
+  select(rank_differential, offense_differential, defense_differential, midfield_differential,
+         points_differential, neutral_location, shoot_out, possesion_differential,
+        SOT_differential,shots_differential,yellowcard_differential,redcard_differential,foul_differential,
+        saves_differential ) # add cap_diff if using
+#predict function needs a mat, makes categorical into dummy vars
+mat = model.matrix(~., test_data)
+# actual y - values
+test_home <- cups_only_nona_new[-train_nums, "home_team_score"] %>%
+  pull()
+test_away <- cups_only_nona_new[-train_nums, "away_team_score"] %>% 
+  pull()
+
+train_data <- cups_only_nona_new[train_nums, ]
+
+
+# Model equations 
+home_x <- model.matrix(home_team_score ~ rank_differential + offense_differential + 
+                         defense_differential + midfield_differential + 
+         points_differential + neutral_location + shoot_out + possesion_differential +
+        SOT_differential +shots_differential +yellowcard_differential+redcard_differential+foul_differential+
+        saves_differential, 
+                       data = train_data) # add cap_diff if using
+away_x <- model.matrix(away_team_score ~  + rank_differential + offense_differential + 
+                         defense_differential + midfield_differential + 
+         points_differential + neutral_location + shoot_out + possesion_differential +
+        SOT_differential +shots_differential +yellowcard_differential+redcard_differential+foul_differential+
+        saves_differential, 
+                       data = train_data) # add cap_diff if using
+
+home_y <- train_data$home_team_score
+away_y <- train_data$away_team_score
+
+
+# Cross validating 
+lambda_grid <- 10^seq(-2, 10, length.out = 5000)
+home_model <- cv.glmnet(home_x, home_y, alpha = 1, 
+                        lambda = lambda_grid, family = "poisson",
+                        nfolds = 5)
+away_model <- cv.glmnet(away_x, away_y, alpha = 1, lambda = lambda_grid, family = "poisson", 
+                        nfolds = 5)
+
+home_lambda <- home_model$lambda.min
+away_lambda <- away_model$lambda.min
+
+
+# Fitting final models
+
+final_home <- glmnet(home_x, home_y, alpha = 1, lambda = home_lambda, family = "poisson")
+final_away <- glmnet(away_x, away_y, alpha = 1, lambda = away_lambda, family = "poisson")
+
+final_home$beta
+final_away$beta
+
+# Generating preds
+home_preds <- predict(home_model, newx = mat, type = "response")
+away_preds <- predict(away_model, newx = mat, type = "response")
+```
+
+
+```{r checking}
+# SANITY CHECKS FOR ACCURACY
+sqrt(mean((test_home - home_preds)^2))
+sqrt(mean((test_away - away_preds)^2))
+
+median(abs(test_home - home_preds))
+median(abs(test_away - away_preds))
+
+
+goalline_preds <- home_preds - away_preds
+
+outcomes <- na.omit(cups_only)[-train_nums, "home_team_result"] 
+
+outcomes %>%
+  count(home_team_result)
+
+sum(goalline_preds  <0)
 ```
 
 
