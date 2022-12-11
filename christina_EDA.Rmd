@@ -225,6 +225,146 @@ sum(goalline_preds  <0)
 
 
 
+```{r FINAL BIVPOIS MODEL, warning=FALSE}
+biv_cups_only_nona <- cups_only_nona_new %>%
+  mutate(shoot_out = ifelse(shoot_out == "Yes", 1, 0),
+         neutral_location = ifelse(neutral_location == TRUE, 1, 0))
+
+
+# need to test accuracy still of bivpoiss with train-test - looks p decent though
+set.seed(2)
+n <- nrow(biv_cups_only_nona)
+train_nums <- sample(1:n, size = 0.8*n)
+
+test_home <- biv_cups_only_nona[-train_nums, "home_team_score"]
+test_away <- biv_cups_only_nona[-train_nums, "away_team_score"]
+
+
+td1 <- biv_cups_only_nona[-train_nums, ] %>%
+         select(rank_differential,offense_differential,  defense_differential, 
+                   neutral_location , shoot_out, possesion_differential, 
+                SOT_differential, yellowcard_differential, redcard_differential,
+                saves_differential) %>% 
+  mutate(int_col = rep(1,nrow(.))) %>% 
+  relocate(int_col)
+td2 <- biv_cups_only_nona[-train_nums, ] %>%
+         select(rank_differential,offense_differential,  defense_differential, 
+                   neutral_location , shoot_out, possesion_differential, 
+                SOT_differential, yellowcard_differential, redcard_differential,
+                saves_differential) %>% 
+  mutate(int_col = rep(1,nrow(.))) %>% 
+  relocate(int_col)
+td3 <- biv_cups_only_nona[-train_nums, ] %>%
+         select(rank_differential,offense_differential,  defense_differential, 
+                   neutral_location , shoot_out, possesion_differential, 
+                SOT_differential, yellowcard_differential, redcard_differential,
+                saves_differential) %>% 
+  mutate(int_col = rep(1,nrow(.))) %>% 
+  relocate(int_col)
+
+
+mat = model.matrix(~., test_data)
+
+test_home <- biv_cups_only_nona[-train_nums, "home_team_score"] %>%
+  pull()
+test_away <- biv_cups_only_nona[-train_nums, "away_team_score"] %>% 
+  pull()
+
+train_data_biv <- biv_cups_only_nona[train_nums, ]
+
+
+#not split... make train data
+fin_mod <- lm.bp(l1 = home_team_score~ 
+                   rank_differential + offense_differential + defense_differential +
+                   neutral_location + shoot_out + possesion_differential +
+                SOT_differential + yellowcard_differential +redcard_differential+ 
+                saves_differential,
+                 l2 = away_team_score~ rank_differential + offense_differential + defense_differential +
+                   neutral_location + shoot_out + possesion_differential +
+                SOT_differential + yellowcard_differential +redcard_differential+ 
+                saves_differential,
+                 l3 = ~ rank_differential + offense_differential + defense_differential +
+                   neutral_location + shoot_out + possesion_differential +
+                SOT_differential + yellowcard_differential +redcard_differential+ 
+                saves_differential, 
+                 data = train_data_biv)
+
+
+# ok multiply
+final_lambdas <- tibble(lambda_1 = exp(as.matrix(td1) %*% as.matrix(fin_mod$beta1)),
+                        lambda_2 = exp(as.matrix(td2) %*% as.matrix(fin_mod$beta2)),
+                        lambda_3 = exp(as.matrix(td3) %*% as.matrix(fin_mod$beta3)))
+
+```
+
+
+```{r MONTE CARLO PERFORMANCE TESTING}
+# Monte Carlo Simulation 
+# use this to generate data - https://stats.stackexchange.com/questions/27443/generate-data-samples-from-poisson-regression
+
+n_test_obs <- nrow(final_lambdas)
+n_sims <- 100000
+set.seed(1)
+all_monte_carlos <- as.data.frame(matrix(NA, nrow = n_sims, ncol = 2*n_test_obs))
+for(i in 1:n_test_obs) {
+  monte_carlo <- rbvpois(n_sims, final_lambdas$lambda_1[i], 
+                       final_lambdas$lambda_2[i], 
+                       final_lambdas$lambda_3[i])
+  all_monte_carlos[, (2*i-1)] <- monte_carlo[, 1]
+  all_monte_carlos[, (2*i)] <- monte_carlo[, 2]
+}
+
+test_actuals <- tibble(home = test_home, away = test_away) %>%
+  mutate(outcome = case_when(
+    test_home - test_away == 0 ~ "Draw",
+    test_home - test_away > 0 ~ "Win",
+    test_home - test_away < 0 ~ "Loss"
+  ),
+  pred_win_prob = NA,
+  pred_loss_prob = NA,
+  pred_draw_prob = NA
+  )
+
+for(i in 1:n_test_obs) {
+  test_actuals[i, "pred_win_prob"] <- 
+    (sum(all_monte_carlos[, (2*i - 1)] - all_monte_carlos[, (2*i)] > 0))/n_sims
+  test_actuals[i, "pred_loss_prob"] <- 
+    (sum(all_monte_carlos[, (2*i - 1)] - all_monte_carlos[, (2*i)] < 0)) /n_sims
+  test_actuals[i, "pred_draw_prob"] <- 
+    (sum(all_monte_carlos[, (2*i - 1)] - all_monte_carlos[, (2*i)] == 0)) /n_sims  
+}
+
+test_actuals <- test_actuals %>%
+  mutate(pred_outcome = case_when(
+    pmax(pred_win_prob, pred_loss_prob, pred_draw_prob) == pred_win_prob ~ "Likely Win",
+    pmax(pred_win_prob, pred_loss_prob, pred_draw_prob) == pred_loss_prob ~ "Likely Loss",
+    pmax(pred_win_prob, pred_loss_prob, pred_draw_prob) == pred_draw_prob ~ "Likely Draw" 
+  ))
+
+# Confusion matrix assuming max_prob is the predicted outcome - bit misleading as performance metric because sometimes probabilities are only diff by 0.05 or so but this will still pick a single outcome. Should find a way to adjust for close wins/losses/draws
+confusion_mat <- table(test_actuals$outcome, test_actuals$pred_outcome)
+
+# Win accuracy
+confusion_mat[9]/ (confusion_mat[9] +  confusion_mat[6] + confusion_mat[3])
+
+# Loss accuracy
+confusion_mat[5]/ (confusion_mat[5] +  confusion_mat[2] + confusion_mat[8])
+
+# Draw accuracy
+confusion_mat[1]/ (confusion_mat[1] +  confusion_mat[4] + confusion_mat[7])
+
+# Overall accuracy
+(confusion_mat[1] +  confusion_mat[5] + confusion_mat[9])/n_test_obs
+
+# obviously this model has a bias for wins...
+
+# need to fit this model to actual test values (i.e 2022 matches). Also can try other variables now that perf metric is built
+
+```
+
+
+
+
 
 #EDA 
 
