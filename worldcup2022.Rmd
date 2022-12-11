@@ -84,8 +84,7 @@ cups_only_nona <- cups_only_nona%>%
 cups_only_nona
 ```
 
-
-To start, we examine the distribution of home and away team scores in each match. The plots are right skewed, with home teams and away teams both peaking at around 1 goal in a match, then decreasing exponentially up to around 7 goals a match. 
+To start, we examine the distribution of home and away team scores in each match. The plots below are right skewed, with home teams and away teams both peaking at around 1 goal in a match, then decreasing exponentially up to around 7 goals a match. 
 
 ```{r}
 par(mfrow=c(1,2))
@@ -113,12 +112,17 @@ ggplot(data = cups_only_nona, mapping = aes(x =rank_differential, y =goals_diffe
   geom_point()
 ```
 
-Looking more into the metric of rank_differential, we can also observe where differences in rank plays into home_team_result(win, draw, or loss). We can observe than when the home team wins, the median of the rank_differential is around 10, which means that when the home team wins, it is ranked 10 spots higher (lower number) than the away team. On the other hand, when the home team loses, the median of the rank_differential is around -8, which means that the home team is ranked 8 spots lower (higher number) than the away team. It's interesting to note that in the instance of a draw, the home team is ranked slightly (around 1 spot) higher (lower number)  than the away team as well. However, we can also notice that there is quite a large overlap in the middle 50th percentile of rank_differential for all three results, and there are also instances of significant amount of outliers, which point us to the uncertainty of soccer matches. 
+Based on the previous observation, it seems as rank_differential might be a relevant factor when looking at the distribution of goals. Looking more into the metric of rank_differential, we observe that differences in rank plays into home_team_result (win, draw, or loss). We can observe than when the home team wins, the median of the rank_differential is around 10, which means that when the home team wins, it is ranked 10 spots higher (lower number) than the away team. On the other hand, when the home team loses, the median of the rank_differential is around -8, which means that the home team is ranked 8 spots lower (higher number) than the away team. It's interesting to note that in the instance of a draw, the home team is ranked slightly (around 1 spot) higher (lower number)  than the away team as well. However, we can also notice that there is quite a large overlap in the middle 50th percentile of rank_differential for all three results, and there are also instances of significant amount of outliers, which point us to the uncertainty of soccer matches. 
 
 ```{r}
 ggplot(data = cups_only_nona, mapping = aes(x = rank_differential, y =home_team_result)) + 
    geom_boxplot()
 ```
+
+Additionally, we are interested to see whether differentials in the players skills (defense score, midfield score, offense score, which are all 
+taken as the 3-4 highest ranked players of the team in that position), has differing effects on the final home team result. However, from the plots below, we can observe that offense_differential, defense_differential, and midfield_differential all have a similar impact on the home team result, with a home team result of win having a median of a greater positive differential, a loss having a negative differential, and a home team result of a tie having a differential slightly greater than 0. Of all 3 metrics, midfield_differential seems to have the smallest IQR across home_team_result. 
+
+
 ```{r}
 ggplot(data = cups_only_nona, mapping = aes(x = offense_differential, y =home_team_result)) + 
    geom_boxplot()
