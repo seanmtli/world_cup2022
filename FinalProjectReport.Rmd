@@ -1,0 +1,43 @@
+---
+title: "Predicting Sports Bets within the FIFA 2022 World Cup"
+author: "Aaditya Warrier, Sean Li, Christina Yoh, Brian Janger"
+output: pdf_document
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      warning = FALSE,
+                      message = FALSE)
+```
+
+```{r load-libraries}
+# PUT ALL LOADED LIBRARIES HERE
+
+
+```
+
+```{r read-data}
+# READ IN ANY DATASETS HERE
+# MUTATE DATSETS AS NECESSARY HERE
+
+
+```
+
+# Introduction
+
+The FIFA World Cup is the most important international soccer tournament in the world, bringing in over 5 billion projected viewers across the 29 day tournament. It is held every four years and brings together the best national teams from countries around the globe to compete for the title of world champions. Not only does the World Cup provide an opportunity for players to showcase their skills on the biggest stage, it also generates a huge amount of interest and excitement (and thus revenues) and provides people from all over the world an opportunity to come together and celebrate their love of soccer, fostering a sense of global unity and understanding.
+
+For a subset of the followers of the World Cup, sports betting has become a prominent part of the experience. The sports betting industry is a large and growing market that involves people placing bets on the outcome of various sports events. This can include bets on individual games or on the overall results of a season or tournament. According to Bloomberg, a total of $35 billion will be wagered on the 2022 FIFA World Cup, a 65% increase on the previous World Cup. 
+
+An integral part of sports betting is the usage of statistics, as it can provide valuable information about the likelihood of certain outcomes in a given game or match. By using statistics, bettors can analyze the true risk on various bets (as opposed to a sportsbook's "odds") and make more informed decisions about which bets to place, giving bettors a better chance of winning and achieving profitable returns.
+
+In short, the goal of our project is to build a predictive model for the 2022 World Cup games using historical international football results and FIFA team rankings in order to provide sports bettors valuable information about the probability of certain outcomes in this year's World Cup. We hope predict goal line bets (point spread/goal differential) as well as 3 way money-line (draw, home win, and away win) bets from the group stage, comparing the odds of respective matches with the odds given by sportsbooks to determine which bets are more likely to be profitable then the odds say.
+
+The dataset we use is a set of thousands of international soccer matches from June 2002 to June 2021, with metrics including team FIFA rank, team FIFA points, match results, offense/defense/midfield score metrics and more. We will first use a Poisson regression model on both home and away team scores to predict score distribution for each team respectively with a lasso penalty to select significant predictor variables and reduce collinearity. Using these relevant predictors, we will then fit a bivariate Poisson model that takes into account the dependency between home and away team goal distributions. Since we have a small number of goals, Poisson regression makes sense as it is intended for response variables that take on small, positive values. Getting results that are probabilistic distributions are important in our case because sports betters are interested in the distribution of results in order to be able to quantify their risk.
+
+# Data
+
+Our analysis utilized a few different datasets, which were combined (and later cleaned) into one final dataset. The main dataset was found on [GitHub](https://github.com/martj42/international_results), which gathered data from [Wikipedia](https://en.wikipedia.org/wiki/Special:Search?go=Go&search=soccer+results&ns0=1), the [Rec.Sport.Soccer Statistics Foundation](rsssf.com) (a group which "strives to be the most comprehensive and complete" archive of soccer statistics), and individual soccer team websites. It features the results of 44,341 international soccer matches between 1872 (the year of the first official international match) and 2022.
+
+We also used three other datasets to give us the predictor variables we need to successfully analyze the results and scores of international soccer matches. These included [FIFA World Rankings](https://www.fifa.com/fifa-world-ranking/men?dateId=id13792) scraped from 2002 onwards, [FIFA Player and Team Data](https://www.kaggle.com/datasets/stefanoleone992/fifa-22-complete-player-dataset), which details the ratings, positions, and other metrics of individual players in the FIFA video game series from the 2015 to 2022 versions of the game, and 
