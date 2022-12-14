@@ -19,3 +19,100 @@ library(tidyr)
 ```{r loading-data, message=F, warning=F}
 matches <- read_csv("data/international_matches.csv")
 ```
+
+```{r home-field-advantage}
+neutral_matches <- matches %>%
+  filter(neutral_location == T) %>%
+  mutate(goal_differential = home_team_score - away_team_score) %>%
+  mutate(fifa_rank_differential = away_team_fifa_rank - home_team_fifa_rank)
+
+ggplot(data = neutral_matches, aes(x = fifa_rank_differential,
+                                   y = goal_differential)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", formula = y ~ x, color = "red") +
+  labs(x = "FIFA Rank Differential",
+       y = "Goal Differential",
+       title = "Goal Differential as FIFA Rank Differential Varies",
+       subtitle = "Positive FIFA Differential Means Home Team is Ranked Higher\nPositive Goal Differential Means Home Team Won")
+```
+
+```{r position-scores}
+position_score_matches <- matches %>%
+  filter(!is.na(home_team_goalkeeper_score) &
+           !is.na(away_team_goalkeeper_score))
+```
+
+
+
+
+
+
+```{r data-cleaning}
+# MUST RUN SEANS CODE FIRST FOR THIS TO WORK
+true_data <- final_dataset %>%
+  select(-c(home_team_total_fifa_points,
+            away_team_total_fifa_points,
+            tournament,
+            city,
+            country,
+            shoot_out,
+            home_team_continent,
+            away_team_continent)) %>%
+  filter(year != 2002)
+
+
+true_data <- true_data %>%
+  filter(!is.na(home_team_goalkeeper_score) &
+         !is.na(away_team_goalkeeper_score) &
+         !is.na(home_team_mean_defense_score) &
+         !is.na(away_team_mean_defense_score) &
+         !is.na(home_team_mean_offense_score) &
+         !is.na(away_team_mean_offense_score) &
+         !is.na(home_team_mean_midfield_score) &
+         !is.na(away_team_mean_midfield_score))
+
+matches <- true_data %>%
+  mutate(goalkeeper_differential = home_team_goalkeeper_score - away_team_goalkeeper_score) %>%
+  mutate(defense_differential = home_team_mean_defense_score - away_team_mean_defense_score) %>%
+  mutate(offense_differential = home_team_mean_offense_score - away_team_mean_offense_score) %>%
+  mutate(midfield_differential = home_team_mean_midfield_score - away_team_mean_midfield_score) %>%
+  select(-c(home_team_goalkeeper_score,
+            away_team_goalkeeper_score,
+            home_team_mean_defense_score,
+            away_team_mean_defense_score,
+            home_team_mean_offense_score,
+            away_team_mean_offense_score,
+            home_team_mean_midfield_score,
+            away_team_mean_midfield_score)) %>%
+  mutate(possesion_differential = hPossesion - aPossesion) %>%
+  mutate(shots_on_target_differential = hshotsOnTarget - ashotsOnTarget) %>%
+  mutate(shots_differential = hshots - ashots) %>%
+  mutate(yellow_cards_differential = hyellowCards - ayellowCards) %>%
+  mutate(red_card_differential = hredCards - aredCards) %>%
+  mutate(fouls_differential = hfouls - afouls) %>%
+  mutate(saves_differential = hsaves - asaves) %>%
+  select(-c(hPossesion,
+            aPossesion,
+            hshotsOnTarget,
+            ashotsOnTarget,
+            hshots,
+            ashots,
+            hyellowCards,
+            ayellowCards,
+            hredCards,
+            aredCards,
+            hfouls,
+            afouls,
+            hsaves,
+            asaves)) %>%
+  mutate(score_differential = home_team_score - away_team_score) %>%
+  mutate(fifa_rank_differential = home_team_fifa_rank - away_team_fifa_rank) %>%
+  select(-c(home_team_fifa_rank,
+            away_team_fifa_rank))
+
+write_csv(matches, "data/cleaned_matches.csv")
+
+```
+
+
+
