@@ -603,3 +603,6 @@ final_lambdas <- tibble(lambda_1 = exp(as.matrix(td1) %*% as.matrix(fin_mod$beta
 
 ```
 
+### Prediction
+
+

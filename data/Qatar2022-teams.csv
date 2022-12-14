@@ -1,33 +1,33 @@
-﻿Team;Group
-Senegal;A
-Qatar;A
-Netherlands;A
-Ecuador;A
-Iran;B
-England;B
-USA;B
-Wales;B
-Argentina;C
-Saudi Arabia;C
-Mexico;C
-Poland;C
-Denmark;D
-Tunisia;D
-France;D
-Australia;D
-Germany;E
-Japan;E
-Spain;E
-Costa Rica;E
-Morocco;F
-Croatia;F
-Belgium;F
-Canada;F
-Switzerland;G
-Cameroon;G
-Brazil;G
-Serbia;G
-Uruguay;H
-South Korea;H
-Portugal;H
-Ghana;H
+﻿Team;Group;Offense;Defense;Midfield
+Senegal;A;79;76;77
+Qatar;A;73;71;71
+Netherlands;A;82;82;83
+Ecuador;A;75;75;75
+Iran;B;81;73;72
+England;B;86;83;83
+USA;B;77;78;76
+Wales;B;78;76;77
+Argentina;C;86;84;82
+Saudi Arabia;C;71;72;71
+Mexico;C;79;77;77
+Poland;C;81;75;75
+Denmark;D;77;83;80
+Tunisia;D;72;75;71
+France;D;86;82;82
+Australia;D;72;72;71
+Germany;E;84;85;82
+Japan;E;75;77;76
+Spain;E;83;85;83
+Costa Rica;E;73;73;74
+Morocco;F;79;73;78
+Croatia;F;80;83;78
+Belgium;F;84;81;79
+Canada;F;75;78;72
+Switzerland;G;77;78;78
+Cameroon;G;75;75;72
+Brazil;G;85;85;83
+Serbia;G;80;80;75
+Uruguay;H;81;82;79
+South Korea;H;79;74;75
+Portugal;H;83;83;84
+Ghana;H;81;76;75
