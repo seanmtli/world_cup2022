@@ -228,10 +228,6 @@ if (zeroL3) {
 #	
 	lambda<-fitted(m)
 	lambda1<-lambda[1:n] 
-	print(typeof(lambda1))
-	print(typeof(x))
-	print(lambda1)
-	print(x)
 	lambda2<-lambda[(n+1):(2*n)]
 	like<-dpois(x, lambda1) * dpois( y, lambda2 )
 	loglike<-sum(log(like))
