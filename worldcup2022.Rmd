@@ -302,7 +302,7 @@ train_nums <- seq(1, 0.8* nrow(cups_only_nona), 1)
 #all the X variables for test data
 test_data = cups_only_nona[-train_nums, ] %>%
   select(rank_differential, offense_differential, defense_differential, midfield_differential,
-         points_differential, neutral_location, shoot_out) # add cap_diff if using
+         points_differential, neutral_location) # add cap_diff if using
 #predict function needs a mat, makes categorical into dummy vars
 mat = model.matrix(~., test_data)
 # actual y - values
@@ -317,11 +317,11 @@ train_data <- cups_only_nona[train_nums, ]
 # Model equations 
 home_x <- model.matrix(home_team_score ~ rank_differential + offense_differential + 
                          defense_differential + midfield_differential + 
-         points_differential + neutral_location + shoot_out, 
+         points_differential + neutral_location, 
                        data = train_data) # add cap_diff if using
 away_x <- model.matrix(away_team_score ~  + rank_differential + offense_differential + 
                          defense_differential + midfield_differential + 
-         points_differential + neutral_location + shoot_out, 
+         points_differential + neutral_location, 
                        data = train_data) # add cap_diff if using
 
 home_y <- train_data$home_team_score
@@ -383,73 +383,71 @@ n <- nrow(biv_cups_only_nona)
 
 # HOME FIELD COMPENSATION?
 
+# set.seed(3)
+# switch <- sample(1:n, 0.5*n)
+# 
+# biv_cups_only_nona <- biv_cups_only_nona %>%
+#   mutate(hgoals_new  = NA, agoals_new = NA)
+# 
+# for(i in 1:n) {
+#   if(i %in% switch) {
+#     biv_cups_only_nona[i, "hgoals_new"] = biv_cups_only_nona[i, "away_team_score"]
+#     biv_cups_only_nona[i, "agoals_new"] = biv_cups_only_nona[i, "home_team_score"]
+#     biv_cups_only_nona[i, "offense_differential"] = - (biv_cups_only_nona[i, "offense_differential"])
+#     biv_cups_only_nona[i, "defense_differential"] = - (biv_cups_only_nona[i, "defense_differential"])
+#     biv_cups_only_nona[i, "midfield_differential"] = - (biv_cups_only_nona[i, "midfield_differential"])
+#     biv_cups_only_nona[i, "points_differential"] = - (biv_cups_only_nona[i, "points_differential"])
+#     biv_cups_only_nona[i, "rank_differential"] = - (biv_cups_only_nona[i, "rank_differential"])
+#   }
+#   else {
+#     biv_cups_only_nona[i, "hgoals_new"] = biv_cups_only_nona[i, "home_team_score"]
+#     biv_cups_only_nona[i, "agoals_new"] = biv_cups_only_nona[i, "away_team_score"]
+#   }
+# }
+
+
 set.seed(3)
-switch <- sample(1:n, 0.5*n)
-
-biv_cups_only_nona <- biv_cups_only_nona %>%
-  mutate(hgoals_new  = NA, agoals_new = NA)
-
-for(i in 1:n) {
-  if(i %in% switch) {
-    biv_cups_only_nona[i, "hgoals_new"] = biv_cups_only_nona[i, "away_team_score"]
-    biv_cups_only_nona[i, "agoals_new"] = biv_cups_only_nona[i, "home_team_score"]
-    biv_cups_only_nona[i, "offense_differential"] = - (biv_cups_only_nona[i, "offense_differential"])
-    biv_cups_only_nona[i, "defense_differential"] = - (biv_cups_only_nona[i, "defense_differential"])
-    biv_cups_only_nona[i, "midfield_differential"] = - (biv_cups_only_nona[i, "midfield_differential"])
-    biv_cups_only_nona[i, "points_differential"] = - (biv_cups_only_nona[i, "points_differential"])
-    biv_cups_only_nona[i, "rank_differential"] = - (biv_cups_only_nona[i, "rank_differential"])
-  }
-  else {
-    biv_cups_only_nona[i, "hgoals_new"] = biv_cups_only_nona[i, "home_team_score"]
-    biv_cups_only_nona[i, "agoals_new"] = biv_cups_only_nona[i, "away_team_score"]
-  }
-}
-
-biv_clone = tibble
-
-
-set.seed(2)
 
 train_nums <- sample(1:n, size = 0.8*n)
 
-test_home <- biv_cups_only_nona[-train_nums, "hgoals_new"]
-test_away <- biv_cups_only_nona[-train_nums, "agoals_new"]
+test_home <- biv_cups_only_nona[-train_nums, "home_team_score"]
+test_away <- biv_cups_only_nona[-train_nums, "away_team_score"]
 
 
 td1 <- biv_cups_only_nona[-train_nums, ] %>%
-         select(offense_differential, 
-                   neutral_location ,midfield_differential, shoot_out) %>% 
+         select(offense_differential, defense_differential,
+                   midfield_differential) %>% 
   mutate(int_col = rep(1,nrow(.))) %>% 
   relocate(int_col)
 td2 <- biv_cups_only_nona[-train_nums, ] %>%
-         select(offense_differential, 
-                   neutral_location ,midfield_differential, shoot_out) %>% 
+         select(offense_differential, defense_differential,
+                    midfield_differential) %>% 
   mutate(int_col = rep(1,nrow(.))) %>% 
   relocate(int_col)
 td3 <- biv_cups_only_nona[-train_nums, ] %>%
-         select(offense_differential , 
-                   neutral_location , midfield_differential, shoot_out) %>% 
+         select(offense_differential , defense_differential,
+                    midfield_differential) %>% 
   mutate(int_col = rep(1,nrow(.))) %>% 
   relocate(int_col)
 
 
 
-test_home <- biv_cups_only_nona[-train_nums, "hgoals_new"] %>%
+test_home <- biv_cups_only_nona[-train_nums, "home_team_score"] %>%
   pull()
-test_away <- biv_cups_only_nona[-train_nums, "agoals_new"] %>% 
+test_away <- biv_cups_only_nona[-train_nums, "away_team_score"] %>% 
   pull()
 
 train_data_biv <- biv_cups_only_nona[train_nums, ]
 
 
 #not split... make train data
-fin_mod <- lm.bp(l1 = hgoals_new~ 
-                   offense_differential + 
-                    neutral_location + midfield_differential + shoot_out,
-                 l2 = agoals_new~ offense_differential  +
-                   neutral_location + midfield_differential + shoot_out,
-                 l3 = ~ offense_differential  +
-                   neutral_location + midfield_differential + shoot_out, 
+fin_mod <- lm.bp(l1 = home_team_score~ 
+                   offense_differential + defense_differential +
+                    midfield_differential,
+                 l2 = away_team_score~ offense_differential  + defense_differential +
+                    midfield_differential,
+                 l3 = ~ offense_differential  + defense_differential +
+                   midfield_differential, 
                  data = train_data_biv)
 
 
@@ -457,6 +455,7 @@ fin_mod <- lm.bp(l1 = hgoals_new~
 final_lambdas <- tibble(lambda_1 = exp(as.matrix(td1) %*% as.matrix(fin_mod$beta1)),
                         lambda_2 = exp(as.matrix(td2) %*% as.matrix(fin_mod$beta2)),
                         lambda_3 = exp(as.matrix(td3) %*% as.matrix(fin_mod$beta3)))
+
 
 ```
 
@@ -499,9 +498,10 @@ for(i in 1:n_test_obs) {
 
 test_actuals <- test_actuals %>%
   mutate(pred_outcome = case_when(
+    pmax(pred_win_prob, pred_loss_prob, pred_draw_prob) == pred_draw_prob ~ "Likely Draw",
     pmax(pred_win_prob, pred_loss_prob, pred_draw_prob) == pred_win_prob ~ "Likely Win",
-    pmax(pred_win_prob, pred_loss_prob, pred_draw_prob) == pred_loss_prob ~ "Likely Loss",
-    pmax(pred_win_prob, pred_loss_prob, pred_draw_prob) == pred_draw_prob ~ "Likely Draw" 
+    pmax(pred_win_prob, pred_loss_prob, pred_draw_prob) == pred_loss_prob ~ "Likely Loss"
+
   ))
 
 # Confusion matrix assuming max_prob is the predicted outcome - bit misleading as performance metric because sometimes probabilities are only diff by 0.05 or so but this will still pick a single outcome. Should find a way to adjust for close wins/losses/draws
