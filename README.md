@@ -1,6 +1,6 @@
 # world_cup2022
 
-Team: Brian Janger, Sean Li, Christina Yoh, Aadtiya Warrier
+Team: Brian Janger, Sean Li, Christina Yoh, Aaditya Warrier
 
 GOAL: 
 Build a predictive model for the 2022 World Cup games using international football results and FIFA player rankings, using just data rather than opinion and expertise
