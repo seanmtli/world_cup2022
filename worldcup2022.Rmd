@@ -44,7 +44,9 @@ int_matches <- read_csv("data/international_matches.csv")
 qatar_teams <- read_delim("data/Qatar2022-teams.csv", delim = ";")
 matches_sched <- read_delim("data/matchs-schedule.csv", delim = ";")
 final_roster_data <- read_csv("data/final_roster_data.csv")
+worldcup_2022_matches<-read_csv("data/Fifa_world_cup_matches.csv")
 ```
+
 
 
 
@@ -621,15 +623,65 @@ group_matches <- matches_sched %>%
 
 Constructed Group Stage Matches Dataset with needed data
 ```{r}
-group_matches %>% full_join(qatar_teams, by = c('hometeam'='Team')) %>% 
+group_matches<-group_matches %>% full_join(qatar_teams, by = c('hometeam'='Team')) %>% 
   full_join(qatar_teams, by = c('awayteam'='Team')) %>% 
   mutate(
      offense_differential = Offense.x - Offense.y,
      defense_differential = Defense.x - Defense.y,
      midfield_differential = Midfield.x - Midfield.y,
      rank_differential = Rank.x-Rank.y,
-     points_differential = Points.x - Points.y
+     points_differential = Points.x - Points.y,
+     goalkeeper_differential=Goalkeeper.x - Goalkeeper.y,
   ) %>% 
   select(hometeam, awayteam, offense_differential, defense_differential, midfield_differential,
-         rank_differential,points_differential)
+         rank_differential,points_differential,goalkeeper_differential)
 ```
+
+```{r}
+library(janitor)
+
+worldcup_2022_matchesnew<-worldcup_2022_matches%>%
+  clean_names()%>%
+  mutate(team1=str_to_title(team1),
+         team2=str_to_title(team2),
+         possession_team1=as.numeric(sub("%", "", possession_team1)),
+         possession_team2=as.numeric(sub("%", "", possession_team2)),
+         "shots_differential"=total_attempts_team1-total_attempts_team2,
+        "possesion_differential"=possession_team1-possession_team2,
+         "shots_on_target_differential"=on_target_attempts_team1-on_target_attempts_team2,
+         "yellow_cards_differential"=yellow_cards_team1-yellow_cards_team2,
+         "red_card_differential"=red_cards_team1-red_cards_team2,
+         "fouls_differential"=fouls_against_team2-fouls_against_team1,
+         "saves_differential"=goal_preventions_team1-goal_preventions_team2,
+         "goal_differential"=number_of_goals_team1-number_of_goals_team2,
+          "home_team"=team1,
+          "away_team"=team2,
+          "home_team_score"=number_of_goals_team1,
+          "away_team_score"=number_of_goals_team2)%>%
+  select(home_team,
+         away_team,
+         home_team_score,
+         away_team_score,
+         date,
+         shots_differential,
+         possesion_differential,
+         shots_on_target_differential,
+         yellow_cards_differential,
+         red_card_differential,
+         fouls_differential,
+         saves_differential)
+         
+         
+worldcup_2022_matchesnew
+
+
+```
+```{r}
+cleaned_group_stage_matches<-group_matches %>% 
+  full_join(worldcup_2022_matchesnew, by=c("hometeam"="home_team","awayteam"="away_team"))
+
+write_csv(cleaned_group_stage_matches, "data/final_group_stage.csv")
+
+```
+```
+
