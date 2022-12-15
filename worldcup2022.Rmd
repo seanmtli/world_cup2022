@@ -614,14 +614,22 @@ final_lambdas <- tibble(lambda_1 = exp(as.matrix(td1) %*% as.matrix(fin_mod$beta
 We need to make the World Cup 2022 Dataset that has the same columns as our model dataset. 
 ```{r}
 #qatar_teams
+matches_sched[matches_sched == "USA"] <- "United States"
+
+
 group_matches <- matches_sched %>% 
   filter(phase == "group matches") %>% 
   rename(hometeam = country1, awayteam = coutry2)
 
+ matches_sched
 ```
 
 
 Constructed Group Stage Matches Dataset with needed data
+```{r}
+group_matches
+```
+
 ```{r}
 group_matches<-group_matches %>% full_join(qatar_teams, by = c('hometeam'='Team')) %>% 
   full_join(qatar_teams, by = c('awayteam'='Team')) %>% 
@@ -635,6 +643,8 @@ group_matches<-group_matches %>% full_join(qatar_teams, by = c('hometeam'='Team'
   ) %>% 
   select(hometeam, awayteam, offense_differential, defense_differential, midfield_differential,
          rank_differential,points_differential,goalkeeper_differential)
+
+group_matches
 ```
 
 ```{r}
@@ -672,14 +682,15 @@ worldcup_2022_matchesnew<-worldcup_2022_matches%>%
          saves_differential)
          
          
+worldcup_2022_matchesnew[worldcup_2022_matchesnew == "Korea Republic"] <- "South Korea"
 worldcup_2022_matchesnew
-
-
 ```
+
 ```{r}
 cleaned_group_stage_matches<-group_matches %>% 
-  full_join(worldcup_2022_matchesnew, by=c("hometeam"="home_team","awayteam"="away_team"))
+  inner_join(worldcup_2022_matchesnew,group_matches, by=c("hometeam"="home_team","awayteam"="away_team"))
 
+cleaned_group_stage_matches
 write_csv(cleaned_group_stage_matches, "data/final_group_stage.csv")
 
 ```

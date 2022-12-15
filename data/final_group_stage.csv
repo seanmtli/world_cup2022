@@ -2,7 +2,7 @@ hometeam,awayteam,offense_differential,defense_differential,midfield_differentia
 Qatar,Ecuador,-2,-4,-4,6,-25,-4,0,2,20 NOV 2022,-1,-8,-3,2,0,0,1
 Senegal,Netherlands,-3,-6,-6,10,-110,9,0,2,21 NOV 2022,5,-1,0,1,0,0,-6
 England,Iran,5,10,11,-15,164,8,6,2,21 NOV 2022,5,53,4,-2,0,5,-5
-USA,Wales,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+United States,Wales,-1,2,-1,-3,58,3,1,1,21 NOV 2022,-1,12,-2,2,0,-5,0
 France,Australia,14,10,11,-34,271,9,4,1,22 NOV 2022,18,21,6,-3,0,6,-18
 Denmark,Tunisia,5,8,9,-20,159,14,0,0,22 NOV 2022,0,22,3,1,0,1,0
 Mexico,Poland,-2,2,2,-13,96,-6,0,0,22 NOV 2022,5,23,3,1,0,2,-7
@@ -12,13 +12,13 @@ Spain,Costa Rica,10,12,9,-24,212,-5,7,0,23 NOV 2022,17,57,7,-2,0,4,-17
 Germany,Japan,9,8,6,-13,91,14,1,2,23 NOV 2022,15,43,6,0,0,8,-14
 Morocco,Croatia,-1,-10,0,10,-82,4,0,0,23 NOV 2022,2,-25,0,1,0,-6,-1
 Switzerland,Cameroon,2,3,6,-28,164,4,1,0,24 NOV 2022,1,-3,0,1,0,-2,-1
-Uruguay,South Korea,2,8,4,-14,108,8,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+Uruguay,South Korea,2,8,4,-14,108,8,0,0,24 NOV 2022,4,11,0,0,0,3,-4
 Portugal,Ghana,2,7,9,-52,283,10,3,2,24 NOV 2022,3,20,2,-2,0,5,-3
 Brazil,Serbia,5,5,8,-20,278,11,2,0,24 NOV 2022,20,19,10,-3,0,5,-20
 Wales,Iran,-3,3,5,-1,5,0,0,2,25 NOV 2022,-11,18,-3,-1,1,1,12
 Qatar,Senegal,-6,-5,-6,32,-145,-16,1,3,25 NOV 2022,-2,-6,-2,0,0,5,1
 Netherlands,Ecuador,7,7,8,-36,230,3,1,1,25 NOV 2022,-11,9,-4,-1,0,-3,12
-England,USA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+England,United States,9,5,7,-11,101,5,0,0,25 NOV 2022,-2,11,1,0,0,6,2
 Tunisia,Australia,0,3,0,-8,19,-9,0,1,26 NOV 2022,5,19,2,3,0,-1,-4
 Poland,Saudi Arabia,10,3,4,-25,111,15,2,0,26 NOV 2022,-8,-27,-2,1,0,-3,7
 France,Denmark,9,-1,2,-6,93,4,2,1,26 NOV 2022,11,0,4,-1,0,5,-11
@@ -28,11 +28,11 @@ Belgium,Morocco,5,8,1,-20,253,6,0,2,27 NOV 2022,-1,24,0,0,0,4,1
 Croatia,Canada,5,5,6,-29,170,3,4,1,27 NOV 2022,4,-5,8,0,0,-8,-4
 Spain,Germany,-1,0,1,-4,65,-7,1,1,27 NOV 2022,-3,23,-1,-2,0,-2,4
 Cameroon,Serbia,-5,-5,-3,22,-92,4,3,3,28 NOV 2022,-3,-11,2,0,0,5,3
-South Korea,Ghana,-2,-2,0,-33,137,-1,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+South Korea,Ghana,-2,-2,0,-33,137,-1,2,3,28 NOV 2022,13,21,3,0,0,-4,-13
 Brazil,Switzerland,8,7,5,-14,206,3,1,0,28 NOV 2022,5,11,5,0,0,7,-5
 Portugal,Uruguay,2,1,5,-5,38,3,2,0,28 NOV 2022,4,18,1,1,0,6,-3
 Wales,England,-8,-7,-6,14,-159,-8,0,3,29 NOV 2022,-10,-25,-6,2,0,-7,9
-Iran,USA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+Iran,United States,4,-5,-4,4,-63,-3,0,1,29 NOV 2022,-6,-3,-3,2,0,-3,7
 Ecuador,Senegal,-4,-1,-2,26,-120,-12,1,2,29 NOV 2022,-7,19,-1,-1,0,-12,7
 Netherlands,Qatar,9,11,12,-42,255,7,2,0,29 NOV 2022,7,16,0,1,0,-10,-9
 Australia,Denmark,-5,-11,-9,28,-178,-5,1,0,30 NOV 2022,-6,-36,1,1,0,-1,6
@@ -44,28 +44,6 @@ Canada,Morocco,-4,5,-6,19,-88,-7,1,2,01 DEC 2022,-2,16,-2,4,0,0,0
 Japan,Spain,-8,-8,-7,17,-156,-7,2,1,01 DEC 2022,-8,-64,-2,3,0,-3,8
 Costa Rica,Germany,-11,-12,-8,20,-147,-2,2,4,01 DEC 2022,-24,-33,-5,1,0,6,24
 Ghana,Uruguay,0,-6,-4,47,-245,-7,0,2,02 DEC 2022,-3,7,-3,-3,0,-7,3
-South Korea,Portugal,-4,-9,-9,19,-146,-11,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+South Korea,Portugal,-4,-9,-9,19,-146,-11,2,1,02 DEC 2022,0,-21,2,2,0,2,2
 Serbia,Switzerland,3,2,-3,6,-72,-8,2,3,02 DEC 2022,-3,4,-3,3,0,-5,4
 Cameroon,Brazil,-10,-10,-11,42,-370,-7,1,0,02 DEC 2022,-12,-25,-3,3,1,0,13
-United States,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
-NA,United States,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
-United States,Wales,NA,NA,NA,NA,NA,NA,1,1,21 NOV 2022,-1,12,-2,2,0,-5,0
-Uruguay,Korea Republic,NA,NA,NA,NA,NA,NA,0,0,24 NOV 2022,4,11,0,0,0,3,-4
-England,United States,NA,NA,NA,NA,NA,NA,0,0,25 NOV 2022,-2,11,1,0,0,6,2
-Korea Republic,Ghana,NA,NA,NA,NA,NA,NA,2,3,28 NOV 2022,13,21,3,0,0,-4,-13
-Iran,United States,NA,NA,NA,NA,NA,NA,0,1,29 NOV 2022,-6,-3,-3,2,0,-3,7
-Korea Republic,Portugal,NA,NA,NA,NA,NA,NA,2,1,02 DEC 2022,0,-21,2,2,0,2,2
-Netherlands,United States,NA,NA,NA,NA,NA,NA,3,1,03 DEC 2022,-7,-21,-1,2,0,-5,5
-Argentina,Australia,NA,NA,NA,NA,NA,NA,2,1,03 DEC 2022,9,18,3,-2,0,7,-9
-France,Poland,NA,NA,NA,NA,NA,NA,3,1,04 DEC 2022,5,6,4,-1,0,-2,-5
-England,Senegal,NA,NA,NA,NA,NA,NA,3,0,04 DEC 2022,-2,19,2,-1,0,-4,2
-Japan,Croatia,NA,NA,NA,NA,NA,NA,1,1,05 DEC 2022,-4,-16,0,-2,0,3,7
-Brazil,Korea Republic,NA,NA,NA,NA,NA,NA,4,1,05 DEC 2022,8,3,3,-1,0,5,-8
-Morocco,Spain,NA,NA,NA,NA,NA,NA,0,0,06 DEC 2022,-7,-46,2,0,0,-1,8
-Portugal,Switzerland,NA,NA,NA,NA,NA,NA,6,1,06 DEC 2022,4,-5,8,-2,0,-2,-5
-Croatia,Brazil,NA,NA,NA,NA,NA,NA,1,1,09 DEC 2022,-11,0,-10,-1,0,2,12
-Netherlands,Argentina,NA,NA,NA,NA,NA,NA,2,2,09 DEC 2022,-10,1,-4,0,1,-12,10
-Morocco,Portugal,NA,NA,NA,NA,NA,NA,1,0,10 DEC 2022,-2,-43,0,2,1,-6,1
-England,France,NA,NA,NA,NA,NA,NA,1,2,10 DEC 2022,5,18,1,-2,0,4,-6
-Argentina,Croatia,NA,NA,NA,NA,NA,NA,3,0,13 DEC 2022,-2,-20,4,0,0,-7,2
-France,Morocco,NA,NA,NA,NA,NA,NA,2,0,14 DEC 2022,1,-21,1,-1,0,0,-1
