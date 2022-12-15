@@ -115,4 +115,23 @@ write_csv(matches, "data/cleaned_matches.csv")
 ```
 
 
+```{r}
+# Iran (0), Qatar (0), Saudi Arabia (2), Morocco (3), Canada (2)
+world_cup_teams <- read.csv("data/Qatar2022-teams.csv", sep=";")
+world_cup_teams <- world_cup_teams %>%
+  mutate(Team = ï..Team) %>%
+  select(-c(ï..Team,
+             Offense,
+             Defense,
+             Midfield))
+
+past_matches <- true_data %>%
+  filter(home_team %in% world_cup_teams$Team | away_team %in% world_cup_teams)
+
+for(team in world_cup_teams$Team){
+  
+}
+```
+
+
 
