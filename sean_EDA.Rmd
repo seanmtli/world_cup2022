@@ -34,6 +34,7 @@ matches[matches == "Côte d'Ivoire"] <- "Ivory Coast"
 matches[matches == "IR Iran"] <- "Iran"
 matches[matches == "Korea Republic"] <- "South Korea"
 matches[matches == "China PR"] <- "China"
+matches[matches == "USA"] <- "United States"
 ```
 
 
@@ -56,5 +57,13 @@ final_dataset %>%
 ```{r}
 unique(box$year)
 ```
+
+
+# getting last 5 for Iran, Qatar, Saudi Arabia, Morocco, Canada
+
+
+
+
+
 
 
