@@ -10,7 +10,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r loading-libraries}
 library(tidyverse)
 library(dplyr)
-library(MASS)
 library(broom)
 library(knitr)
 library(tidyr)
@@ -116,21 +115,111 @@ write_csv(matches, "data/cleaned_matches.csv")
 
 
 ```{r}
-# Iran (0), Qatar (0), Saudi Arabia (2), Morocco (3), Canada (2)
 world_cup_teams <- read.csv("data/Qatar2022-teams.csv", sep=";")
-world_cup_teams <- world_cup_teams %>%
-  mutate(Team = ï..Team) %>%
-  select(-c(ï..Team,
-             Offense,
-             Defense,
-             Midfield))
+```
+
+
+```{r}
+
+library(readxl)
+missing <- read_xlsx("data/last5.xlsx") %>%
+  rename(home_team = Team,
+         away_team = Away,
+         hshotsOnTarget = SOT,
+         hshots = Shots,
+         hPossesion = Possession,
+         hfouls = Fouls,
+         hyellowCards = Yellow,
+         hredCards = Red,
+         home_team_score = hgoals,
+         away_team_score = agoals) %>%
+  select(-c(away_team))
 
 past_matches <- true_data %>%
-  filter(home_team %in% world_cup_teams$Team | away_team %in% world_cup_teams)
+  filter(home_team %in% world_cup_teams$Team | away_team %in% world_cup_teams$Team)
 
-for(team in world_cup_teams$Team){
+past_matches <- bind_rows(past_matches, missing)
+    
+    
+    #rbind(c(NA,team,NA,NA,NA,goals_for,goals_allowed,
+    #        NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,possession,
+    #        NA,shots_on_target,NA,shots,NA,yellow_cards,NA,
+    #        red_cards,NA,fouls,NA,NA,NA))
+
+
+world_cup_teams <- world_cup_teams %>%
+  mutate(avg_goals = NA,
+         avg_goalsallowed = NA,
+         avg_shotsontarget = NA,
+         avg_shots = NA,
+         avg_possession = NA,
+         avg_fouls = NA,
+         avg_yellowcards = NA,
+         avg_redcards = NA)
+
+for(j in 1:nrow(world_cup_teams)){
+  avg_goals = 0
+  avg_goalsallowed = 0
+  avg_shotsontarget = 0
+  avg_shots = 0
+  avg_possession = 0
+  avg_fouls = 0
+  avg_yellowcards = 0
+  avg_redcards = 0
+  
+  team <- world_cup_teams[j,"Team"]
+  
+  country <- past_matches %>%
+    filter(home_team == team | away_team == team) %>%
+    slice_tail(n=5)
+  #print(country)
+  
+  for(i in 1:nrow(country)){
+    
+    if(country[i,"home_team"]==team){
+      avg_goals = avg_goals + country[i,"home_team_score"]
+      avg_goalsallowed = avg_goalsallowed + country[i,"away_team_score"]
+      avg_shotsontarget = avg_shotsontarget + country[i, "hshotsOnTarget"]
+      avg_shots = avg_shots + country[i, "hshots"]
+      avg_possession = avg_possession + country[i, "hPossesion"]
+      avg_fouls = avg_fouls + country[i, "hfouls"]
+      avg_yellowcards = avg_yellowcards + country[i, "hyellowCards"]
+      avg_redcards = avg_redcards + country[i,"hredCards"]
+    }
+    else {
+      avg_goals = avg_goals + country[i,"away_team_score"]
+      avg_goalsallowed = avg_goalsallowed + country[i,"home_team_score"]
+      avg_shotsontarget = avg_shotsontarget + country[i, "ashotsOnTarget"]
+      avg_shots = avg_shots + country[i, "ashots"]
+      avg_possession = avg_possession + country[i, "aPossesion"]
+      avg_fouls = avg_fouls + country[i, "afouls"]
+      avg_yellowcards = avg_yellowcards + country[i, "ayellowCards"]
+      avg_redcards = avg_redcards + country[i,"aredCards"]
+    }
+  }
+  
+  avg_goals = avg_goals / 5
+  avg_goalsallowed = avg_goalsallowed / 5
+  avg_shotsontarget = avg_shotsontarget / 5
+  avg_shots = avg_shots / 5
+  avg_possession = avg_possession / 5
+  avg_fouls = avg_fouls / 5
+  avg_yellowcards = avg_yellowcards / 5
+  avg_redcards = avg_redcards / 5
+  
+  world_cup_teams[j,"avg_goals"] = avg_goals
+  world_cup_teams[j,"avg_goalsallowed"] = avg_goalsallowed
+  world_cup_teams[j,"avg_shotsontarget"] = avg_shotsontarget
+  world_cup_teams[j,"avg_shots"] = avg_shots
+  world_cup_teams[j,"avg_possession"] = avg_possession
+  world_cup_teams[j,"avg_fouls"] = avg_fouls
+  world_cup_teams[j,"avg_yellowcards"] = avg_yellowcards
+  world_cup_teams[j,"avg_redcards"] = avg_redcards
   
 }
+
+write_csv(world_cup_teams, "data/FIFA2022_GroupStageTeams.csv")
+
 ```
 
 
