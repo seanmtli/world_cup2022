@@ -115,6 +115,15 @@ write_csv(matches, "data/cleaned_matches.csv")
 
 
 ```{r}
+neutral_matches <- matches %>%
+  filter(neutral_location == "True")
+
+
+write_csv(neutral_matches, "data/neutral_cleaned_matches.csv")
+```
+
+
+```{r}
 world_cup_teams <- read.csv("data/Qatar2022-teams.csv", sep=";")
 ```
 
