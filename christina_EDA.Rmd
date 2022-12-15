@@ -9,31 +9,6 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #Data 
 
-```{r}
-# Making new variables, keeping torunament matches only
-cups_only <- int_matches %>%
-  filter(!str_detect(tournament, "Friendly|qualification"), format(date, "%Y") >= 2000) %>%
-  select(-home_team_goalkeeper_score, away_team_goalkeeper_score) %>%
-  mutate(rank_differential = away_team_fifa_rank - home_team_fifa_rank, #away - home so positive rank differential means home team is paper
-         offense_differential = home_team_mean_offense_score - away_team_mean_offense_score,
-         defense_differential = home_team_mean_defense_score - away_team_mean_defense_score,
-         midfield_differential = home_team_mean_midfield_score - away_team_mean_midfield_score,
-         points_differential = home_team_total_fifa_points - away_team_total_fifa_points,
-         year = as.numeric(format(date, "%Y"))) 
-
-cups_only_nona <- na.omit(cups_only)
-
-```
-
-```{r}
-cups_only_nona <- cups_only_nona%>%
-  mutate(goals_differential = home_team_score - away_team_score,
-         avg_team_differential = (offense_differential + defense_differential + midfield_differential)/3 )
-
-cups_only_nona
-```
-
-
 
 #Introduction 
 
@@ -48,87 +23,6 @@ In short, the goal of our project is to build a predictive model for the 2022 Wo
 Our combined dataset is all international soccer matches from June 2002 to June 2021, with metrics including fifa rank, fifa points, match result, offense/defense/midfield score and more. We will first use a Poisson regression model on both home and away team scores to predict score distribution for each team respectively with a lasso penalty to choose variables and reduce collinearity. Using the relevant predictors given to us by our lasso model, we will then fit a bivariate poisson model that takes into account the dependency between home and away team goal distributions. Since we have a small number of goals, Poisson regression makes sense as it is intended for situations with few counts. Getting results that are probabilistic distributions are important in our case because sports betters are interested in the distribution of results in order to be able to quantify their risk. 
 
 
-#Joining Code 
-```{r}
-library(dplyr)
-library(ggplot2)
-```
-
-```{r}
-library(tidyverse)
-#library(DescTools)
-library(glmnet)
-library(extraDistr)
-data("d.countries")
-source("biv-pois-functions/lm.bp.R")
-source("biv-pois-functions/bivpois.table.R")
-source("biv-pois-functions/newnamesbeta.R")
-source("biv-pois-functions/pbivpois.R")
-source("biv-pois-functions/simple.bp.R")
-source("biv-pois-functions/splitbeta.R")
-int_matches <- read_csv("data/international_matches.csv")
-qatar_teams <- read_delim("data/Qatar2022-teams.csv", delim = ";")
-matches_sched <- read_delim("data/matchs-schedule.csv", delim = ";")
-final_roster_data <- read_csv("data/final_roster_data.csv")
-```
-
-
-```{r}
-match_box_data <- read_csv("data/FIFAallMatchBoxData.csv")
-```
-
-```{r}
-# Making new variables, keeping torunament matches only
-cups_only <- int_matches %>%
-  filter(!str_detect(tournament, "Friendly|qualification"), format(date, "%Y") >= 2000) %>%
-  select(-home_team_goalkeeper_score, away_team_goalkeeper_score) %>%
-  mutate(rank_differential = away_team_fifa_rank - home_team_fifa_rank, #away - home so positive rank differential means home team is paper
-         offense_differential = home_team_mean_offense_score - away_team_mean_offense_score,
-         defense_differential = home_team_mean_defense_score - away_team_mean_defense_score,
-         midfield_differential = home_team_mean_midfield_score - away_team_mean_midfield_score,
-         points_differential = home_team_total_fifa_points - away_team_total_fifa_points,
-         year = as.numeric(format(date, "%Y"))) 
-
-cups_only_nona <- na.omit(cups_only)
-
-```
-
-```{r}
-cups_only_nona <- cups_only_nona%>%
-  mutate(goals_differential = home_team_score - away_team_score,
-         avg_team_differential = (offense_differential + defense_differential + midfield_differential)/3 )
-
-cups_only_nona
-```
-
-```{r}
-match_box_data
-```
-
-
-```{r}
-cups_only_nona_new<-inner_join(cups_only_nona, match_box_data, by = c("year"="year",
-                                                            "home_team" = "hname",
-                                                        "away_team" = "aname",
-                                                        "home_team_score"="hgoals",
-                                                        "away_team_score"="agoals")
-                                                            )
-
-
-
-cups_only_nona_new<- cups_only_nona_new%>%
-  mutate(possesion_differential = hPossesion-aPossesion,
-         SOT_differential = hshotsOnTarget - ashotsOnTarget,
-         shots_differential=hshots-ashots,
-         yellowcard_differential=hyellowCards-ayellowCards,
-         redcard_differential=hredCards-aredCards,
-         foul_differential=hfouls-afouls,
-         saves_differential=hsaves-asaves)
-#merge cups_only_nona with match_box_data
-
-```
-
-
 #MODELING 
 
 ```{r}
@@ -138,40 +32,33 @@ cups_only_nona_new<- cups_only_nona_new%>%
 
 # Building train and test set for CV
 set.seed(1)
-n <- nrow(cups_only_nona_new)
+n <- nrow(cleaned_matches)
 
 
-train_nums <- seq(1, 0.8* nrow(cups_only_nona_new), 1)
+train_nums <- seq(1, 0.8* nrow(cleaned_matches), 1)
 
 #all the X variables for test data
-test_data = cups_only_nona_new[-train_nums, ] %>%
-  select(rank_differential, offense_differential, defense_differential, midfield_differential,
-         points_differential, neutral_location, shoot_out, possesion_differential,
-        SOT_differential,shots_differential,yellowcard_differential,redcard_differential,foul_differential,
-        saves_differential ) # add cap_diff if using
+test_data = cleaned_matches[-train_nums, ] %>%
+  select(goalkeeper_differential, fifa_rank_differential, offense_differential, defense_differential, midfield_differential,
+         neutral_location, possesion_differential,shots_differential,yellow_cards_differential,red_card_differential,fouls_differential,
+        saves_differential, shots_on_target_differential ) # add cap_diff if using, score_differential, shots_on_target_differential
 #predict function needs a mat, makes categorical into dummy vars
 mat = model.matrix(~., test_data)
 # actual y - values
-test_home <- cups_only_nona_new[-train_nums, "home_team_score"] %>%
+test_home <- cleaned_matches[-train_nums, "home_team_score"] %>%
   pull()
-test_away <- cups_only_nona_new[-train_nums, "away_team_score"] %>% 
+test_away <- cleaned_matches[-train_nums, "away_team_score"] %>% 
   pull()
 
-train_data <- cups_only_nona_new[train_nums, ]
+train_data <- cleaned_matches[train_nums, ]
 
 
 # Model equations 
-home_x <- model.matrix(home_team_score ~ rank_differential + offense_differential + 
-                         defense_differential + midfield_differential + 
-         points_differential + neutral_location + shoot_out + possesion_differential +
-        SOT_differential +shots_differential +yellowcard_differential+redcard_differential+foul_differential+
-        saves_differential, 
+home_x <- model.matrix(home_team_score ~ goalkeeper_differential+fifa_rank_differential+offense_differential+defense_differential+ midfield_differential+neutral_location+possesion_differential+shots_differential+yellow_cards_differential+red_card_differential+fouls_differential+
+        saves_differential+ shots_on_target_differential, 
                        data = train_data) # add cap_diff if using
-away_x <- model.matrix(away_team_score ~  + rank_differential + offense_differential + 
-                         defense_differential + midfield_differential + 
-         points_differential + neutral_location + shoot_out + possesion_differential +
-        SOT_differential +shots_differential +yellowcard_differential+redcard_differential+foul_differential+
-        saves_differential, 
+away_x <- model.matrix(away_team_score ~goalkeeper_differential+fifa_rank_differential+offense_differential+defense_differential+ midfield_differential+neutral_location+possesion_differential+shots_differential+yellow_cards_differential+red_card_differential+fouls_differential+
+        saves_differential+ shots_on_target_differential, 
                        data = train_data) # add cap_diff if using
 
 home_y <- train_data$home_team_score
@@ -226,66 +113,61 @@ sum(goalline_preds  <0)
 
 
 ```{r FINAL BIVPOIS MODEL, warning=FALSE}
-biv_cups_only_nona <- cups_only_nona_new %>%
-  mutate(shoot_out = ifelse(shoot_out == "Yes", 1, 0),
-         neutral_location = ifelse(neutral_location == TRUE, 1, 0))
+biv_cleaned_matches<- cleaned_matches %>%
+  mutate(neutral_location = ifelse(neutral_location == TRUE, 1, 0))
 
 
 # need to test accuracy still of bivpoiss with train-test - looks p decent though
 set.seed(2)
-n <- nrow(biv_cups_only_nona)
+n <- nrow(biv_cleaned_matches)
 train_nums <- sample(1:n, size = 0.8*n)
 
-test_home <- biv_cups_only_nona[-train_nums, "home_team_score"]
-test_away <- biv_cups_only_nona[-train_nums, "away_team_score"]
+test_home <- biv_cleaned_matches[-train_nums, "home_team_score"]
+test_away <- biv_cleaned_matches[-train_nums, "away_team_score"]
 
 
-td1 <- biv_cups_only_nona[-train_nums, ] %>%
-         select(rank_differential,offense_differential,  defense_differential, 
-                   neutral_location , shoot_out, possesion_differential, 
-                SOT_differential, yellowcard_differential, redcard_differential,
-                saves_differential) %>% 
+td1 <- biv_cleaned_matches[-train_nums, ] %>%
+         select(goalkeeper_differential, fifa_rank_differential, offense_differential,
+          neutral_location,
+       shots_on_target_differential,shots_differential,yellow_cards_differential,fouls_differential,
+        saves_differential) %>% 
   mutate(int_col = rep(1,nrow(.))) %>% 
   relocate(int_col)
-td2 <- biv_cups_only_nona[-train_nums, ] %>%
-         select(rank_differential,offense_differential,  defense_differential, 
-                   neutral_location , shoot_out, possesion_differential, 
-                SOT_differential, yellowcard_differential, redcard_differential,
-                saves_differential) %>% 
+td2 <- biv_cleaned_matches[-train_nums, ] %>%
+         select(goalkeeper_differential,fifa_rank_differential, offense_differential,
+          neutral_location, 
+       shots_on_target_differential,shots_differential,yellow_cards_differential,fouls_differential,
+        saves_differential) %>% 
   mutate(int_col = rep(1,nrow(.))) %>% 
   relocate(int_col)
-td3 <- biv_cups_only_nona[-train_nums, ] %>%
-         select(rank_differential,offense_differential,  defense_differential, 
-                   neutral_location , shoot_out, possesion_differential, 
-                SOT_differential, yellowcard_differential, redcard_differential,
-                saves_differential) %>% 
+td3 <- biv_cleaned_matches[-train_nums, ] %>%
+         select(goalkeeper_differential, fifa_rank_differential, offense_differential,
+          neutral_location,
+       shots_on_target_differential,shots_differential,yellow_cards_differential,fouls_differential,
+        saves_differential) %>% 
   mutate(int_col = rep(1,nrow(.))) %>% 
   relocate(int_col)
 
 
 mat = model.matrix(~., test_data)
 
-test_home <- biv_cups_only_nona[-train_nums, "home_team_score"] %>%
+test_home <- biv_cleaned_matches[-train_nums, "home_team_score"] %>%
   pull()
-test_away <- biv_cups_only_nona[-train_nums, "away_team_score"] %>% 
+test_away <- biv_cleaned_matches[-train_nums, "away_team_score"] %>% 
   pull()
 
-train_data_biv <- biv_cups_only_nona[train_nums, ]
+train_data_biv <- biv_cleaned_matches[train_nums, ]
 
 
 #not split... make train data
-fin_mod <- lm.bp(l1 = home_team_score~ 
-                   rank_differential + offense_differential + defense_differential +
-                   neutral_location + shoot_out + possesion_differential +
-                SOT_differential + yellowcard_differential +redcard_differential+ 
+fin_mod <- lm.bp(l1 = home_team_score~ fifa_rank_differential + offense_differential + goalkeeper_differential +
+                   neutral_location+ shots_on_target_differential + shots_differential+ yellow_cards_differential +fouls_differential+ 
                 saves_differential,
-                 l2 = away_team_score~ rank_differential + offense_differential + defense_differential +
-                   neutral_location + shoot_out + possesion_differential +
-                SOT_differential + yellowcard_differential +redcard_differential+ 
+                 l2 = away_team_score~ fifa_rank_differential + offense_differential + goalkeeper_differential +
+                   neutral_location+ shots_on_target_differential + shots_differential+ yellow_cards_differential +fouls_differential+ 
                 saves_differential,
-                 l3 = ~ rank_differential + offense_differential + defense_differential +
-                   neutral_location + shoot_out + possesion_differential +
-                SOT_differential + yellowcard_differential +redcard_differential+ 
+                 l3 = ~ fifa_rank_differential + offense_differential + goalkeeper_differential +
+                   neutral_location+ shots_on_target_differential + shots_differential+ yellow_cards_differential +fouls_differential+ 
                 saves_differential, 
                  data = train_data_biv)
 
@@ -296,7 +178,6 @@ final_lambdas <- tibble(lambda_1 = exp(as.matrix(td1) %*% as.matrix(fin_mod$beta
                         lambda_3 = exp(as.matrix(td3) %*% as.matrix(fin_mod$beta3)))
 
 ```
-
 
 ```{r MONTE CARLO PERFORMANCE TESTING}
 # Monte Carlo Simulation 
@@ -874,3 +755,51 @@ ggplot(team_scores, aes(fill=variable, y=value, x=team)) +
 
 Correlation Matrix 
 
+
+```{r}
+library(janitor)
+
+worldcup_2022_matchesnew<-worldcup_2022_matches%>%
+  clean_names()%>%
+  mutate(team1=str_to_title(team1),
+         team2=str_to_title(team2),
+         possession_team1=as.numeric(sub("%", "", possession_team1)),
+         possession_team2=as.numeric(sub("%", "", possession_team2)),
+         "shots_differential"=total_attempts_team1-total_attempts_team2,
+        "possesion_differential"=possession_team1-possession_team2,
+         "shots_on_target_differential"=on_target_attempts_team1-on_target_attempts_team2,
+         "yellow_cards_differential"=yellow_cards_team1-yellow_cards_team2,
+         "red_card_differential"=red_cards_team1-red_cards_team2,
+         "fouls_differential"=fouls_against_team2-fouls_against_team1,
+         "saves_differential"=goal_preventions_team1-goal_preventions_team2,
+         "goal_differential"=number_of_goals_team1-number_of_goals_team2,
+          "home_team"=team1,
+          "away_team"=team2,
+          "home_team_score"=number_of_goals_team1,
+          "away_team_score"=number_of_goals_team2)%>%
+  select(home_team,
+         away_team,
+         home_team_score,
+         away_team_score,
+         date,
+         shots_differential,
+         possesion_differential,
+         shots_on_target_differential,
+         yellow_cards_differential,
+         red_card_differential,
+         fouls_differential,
+         saves_differential)
+         
+         
+worldcup_2022_matchesnew[worldcup_2022_matchesnew == "Korea Republic"] <- "South Korea"
+worldcup_2022_matchesnew
+```
+
+```{r}
+cleaned_group_stage_matches<-group_matches %>% 
+  inner_join(worldcup_2022_matchesnew,group_matches, by=c("hometeam"="home_team","awayteam"="away_team"))
+
+cleaned_group_stage_matches
+write_csv(cleaned_group_stage_matches, "data/final_group_stage.csv")
+
+```
