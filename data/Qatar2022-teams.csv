@@ -1,33 +1,33 @@
-﻿Team;Group;Offense;Defense;Midfield
-Senegal;A;79;76;77
-Qatar;A;73;71;71
-Netherlands;A;82;82;83
-Ecuador;A;75;75;75
-Iran;B;81;73;72
-England;B;86;83;83
-USA;B;77;78;76
-Wales;B;78;76;77
-Argentina;C;86;84;82
-Saudi Arabia;C;71;72;71
-Mexico;C;79;77;77
-Poland;C;81;75;75
-Denmark;D;77;83;80
-Tunisia;D;72;75;71
-France;D;86;82;82
-Australia;D;72;72;71
-Germany;E;84;85;82
-Japan;E;75;77;76
-Spain;E;83;85;83
-Costa Rica;E;73;73;74
-Morocco;F;79;73;78
-Croatia;F;80;83;78
-Belgium;F;84;81;79
-Canada;F;75;78;72
-Switzerland;G;77;78;78
-Cameroon;G;75;75;72
-Brazil;G;85;85;83
-Serbia;G;80;80;75
-Uruguay;H;81;82;79
-South Korea;H;79;74;75
-Portugal;H;83;83;84
-Ghana;H;81;76;75
+﻿Team;Group;Offense;Defense;Midfield;Rank;Points
+Senegal;A;79;76;77;18;1584
+Qatar;A;73;71;71;50;1439
+Netherlands;A;82;82;83;8;1694
+Ecuador;A;75;75;75;44;1464
+Iran;B;81;73;72;20;1564
+England;B;86;83;83;5;1728
+USA;B;77;78;76;16;1627
+Wales;B;78;76;77;19;1569
+Argentina;C;86;84;82;3;1773
+Saudi Arabia;C;71;72;71;51;1437
+Mexico;C;79;77;77;13;1644
+Poland;C;81;75;75;26;1548
+Denmark;D;77;83;80;10;1666
+Tunisia;D;72;75;71;30;1507
+France;D;86;82;82;4;1759
+Australia;D;72;72;71;38;1488
+Germany;E;84;85;82;11;1650
+Japan;E;75;77;76;24;1559
+Spain;E;83;85;83;7;1715
+Costa Rica;E;73;73;74;31;1503
+Morocco;F;79;73;78;22;1563
+Croatia;F;80;83;78;12;1645
+Belgium;F;84;81;79;2;1816
+Canada;F;75;78;72;41;1475
+Switzerland;G;77;78;78;15;1635
+Cameroon;G;75;75;72;43;1471
+Brazil;G;85;85;83;1;1841
+Serbia;G;80;80;75;21;1563
+Uruguay;H;81;82;79;14;1638
+South Korea;H;79;74;75;28;1530
+Portugal;H;83;83;84;9;1676
+Ghana;H;81;76;75;61;1393

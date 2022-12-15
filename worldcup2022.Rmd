@@ -606,6 +606,30 @@ final_lambdas <- tibble(lambda_1 = exp(as.matrix(td1) %*% as.matrix(fin_mod$beta
 
 ```
 
+
 ### Prediction
 
+We need to make the World Cup 2022 Dataset that has the same columns as our model dataset. 
+```{r}
+#qatar_teams
+group_matches <- matches_sched %>% 
+  filter(phase == "group matches") %>% 
+  rename(hometeam = country1, awayteam = coutry2)
 
+```
+
+
+Constructed Group Stage Matches Dataset with needed data
+```{r}
+group_matches %>% full_join(qatar_teams, by = c('hometeam'='Team')) %>% 
+  full_join(qatar_teams, by = c('awayteam'='Team')) %>% 
+  mutate(
+     offense_differential = Offense.x - Offense.y,
+     defense_differential = Defense.x - Defense.y,
+     midfield_differential = Midfield.x - Midfield.y,
+     rank_differential = Rank.x-Rank.y,
+     points_differential = Points.x - Points.y
+  ) %>% 
+  select(hometeam, awayteam, offense_differential, defense_differential, midfield_differential,
+         rank_differential,points_differential)
+```
