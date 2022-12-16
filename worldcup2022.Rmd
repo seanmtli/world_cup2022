@@ -653,6 +653,8 @@ group_matches<-group_matches %>% full_join(qatar_groupstage_teams, by = c('homet
          fouls_differential,score_differential)
 
 group_matches
+
+write_csv(group_matches, "data/final_group_matches.csv")
 ```
 
 

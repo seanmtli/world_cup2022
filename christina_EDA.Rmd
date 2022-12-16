@@ -247,6 +247,25 @@ confusion_mat[1]/ (confusion_mat[1] +  confusion_mat[4] + confusion_mat[7])
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #EDA 
 
 To start, we examine the distribution of home and away team scores in each match. The plots are right skewed, with home teams and away teams both peaking at around 1 goal in a match, then decreasing exponentially up to around 7 goals a match. 
