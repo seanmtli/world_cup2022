@@ -216,3 +216,4 @@ confusion_mat_books[2]/(confusion_mat_books[2] + confusion_mat_books[5])
 
 # Overall accuracy
 (confusion_mat_books[2] + confusion_mat_books[6]) /n_test_obs
+
