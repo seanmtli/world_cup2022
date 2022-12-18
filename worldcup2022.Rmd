@@ -587,7 +587,7 @@ group_matches <- group_matches %>% full_join(qatar_groupstage_teams, by = c('hom
 
 group_matches
 
-write_csv(group_matches, "data/final_group_matches.csv")
+#write_csv(group_matches, "data/final_group_matches.csv")
 
 
 final_model2_data <- matches_results_2022 %>%
@@ -635,6 +635,12 @@ n <- nrow(biv_cups_only_nona)
 
 train_data_biv <- biv_cups_only_nona
 
+#all variables are predictors that have significance based on lasso
+
+#each lambda in fin_mod represents the rate param for home, away, and the 
+#correlation between the first two vars
+
+#lambda depends on the beta values (the X coefficient)s 
 
 fin_mod <- lm.bp(l1 = home_team_score~ 
                    offense_differential + defense_differential + midfield_differential,
@@ -663,6 +669,7 @@ td3 <- final_model1_data %>%
   mutate(int_col = rep(1,nrow(.))) %>% 
   relocate(int_col)
 
+#get final values for lambdas
 final_lambdas <- tibble(lambda_1 = exp(as.matrix(td1) %*% as.matrix(fin_mod$beta1)),
                         lambda_2 = exp(as.matrix(td2) %*% as.matrix(fin_mod$beta2)),
                         lambda_3 = exp(as.matrix(td3) %*% as.matrix(fin_mod$beta3)))
@@ -671,7 +678,9 @@ n_test_obs <- nrow(final_lambdas)
 n_sims <- 100000
 set.seed(1)
 all_monte_carlos <- as.data.frame(matrix(NA, nrow = n_sims, ncol = 2*n_test_obs))
+#draw randomly from the distirbution of the poisson distributions 
 for(i in 1:n_test_obs) {
+  # [home-away] score prediction so ex: 2-0 or 3-3
   monte_carlo <- rbvpois(n_sims, final_lambdas$lambda_1[i], 
                        final_lambdas$lambda_2[i], 
                        final_lambdas$lambda_3[i])
@@ -730,15 +739,17 @@ confusion_mat[2]/(confusion_mat[2] + confusion_mat[5])
 
 
 ```{r final_2022_predictions--model_2, warning=FALSE}
+#all the differentials
 biv_cleaned_matches<- cleaned_matches %>%
   mutate(neutral_location = ifelse(neutral_location == TRUE, 1, 0))
 
 
-
+#final model2 data is the training data 
 test_home <- final_model2_data[, "country1_score"] 
 test_away <- final_model2_data[, "country2_score"] 
 
-
+#getting three datasets from this, one for each matrix of X for the biv poisson model
+#they also include intercept
 td1 <- final_model2_data %>%
          select(fifa_rank_differential, offense_differential,goalkeeper_differential,
           neutral_location,
@@ -758,7 +769,7 @@ td3 <- final_model2_data %>%
   mutate(int_col = rep(1,nrow(.))) %>% 
   relocate(int_col)
 
-
+#same as above
 train_data_biv <- biv_cleaned_matches
 
 
