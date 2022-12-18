@@ -708,6 +708,12 @@ for(i in 1:n_test_obs) {
     (sum(all_monte_carlos[, (2*i - 1)] - all_monte_carlos[, (2*i)] == 0)) /n_sims  
 }
 
+goal_diffs <- tibble(mean_diffs = rep(NA, n_test_obs))
+for(i in 1:n_test_obs) {
+  goal_diffs[i, "mean_diffs"] <- 
+    mean(all_monte_carlos[, (2*i - 1)] - all_monte_carlos[, (2*i)])
+}
+
 test_actuals <- test_actuals %>%
   mutate(pred_outcome = case_when(
     pmax(pred_win_prob, pred_loss_prob, pred_draw_prob) == pred_draw_prob ~ "Likely Draw",
