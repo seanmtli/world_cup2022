@@ -27,6 +27,12 @@ matches <- read_csv("data/cleaned_matches.csv")
 
 ```
 
+
+```{r final-model, results='hide'}
+# this file contains all relevant modelling code needed for this doc to run
+source("all_model_code.R")
+```
+
 # Introduction
 
 The FIFA World Cup is the most important international soccer tournament in the world, bringing in over 5 billion projected viewers across the 29 day tournament. It is held every four years and brings together the best national teams from countries around the globe to compete for the title of world champions. Not only does the World Cup provide an opportunity for players to showcase their skills on the biggest stage, it also generates a huge amount of interest and excitement (and thus revenue), and provides people from all over the world an opportunity to come together and celebrate their love of soccer, fostering a sense of global unity and understanding.
@@ -35,7 +41,7 @@ For a subset of the followers of the World Cup, sports betting has become a prom
 
 An integral part of sports betting is the usage of statistics, as it can provide valuable information about the likelihood of certain outcomes in a given game or match. By using statistics, bettors can analyze the true risk on various bets (as opposed to a sportsbook's "odds") and make more informed decisions about which bets to place, giving bettors a better chance of winning and achieving profitable returns.
 
-In short, the goal of our project is to build a predictive model for the 2022 World Cup games using historical international football results and FIFA team rankings in order to provide sports bettors valuable information about the probability of certain outcomes in this year's World Cup. We hope predict goal line bets (point spread/goal differential) as well as 3 way money-line (draw, home win, and away win) bets from the group stage, comparing the odds of respective matches with the odds given by sportsbooks to determine which bets are more likely to be profitable then the odds say.
+In short, the goal of our project is to build a predictive model for the 2022 World Cup games using historical international football results and FIFA team rankings in order to provide sports bettors valuable information about the probability of certain outcomes in this year's World Cup. We hope to predict goal line bets (point spread/goal differential) as well as 3 way money-line (draw, home win, and away win) bets from the group stage, comparing the odds of respective matches with the odds given by sportsbooks to determine which bets are more likely to be profitable then the odds say.
 
 The dataset we use is a set of thousands of international soccer matches from June 2002 to June 2021, with metrics including team FIFA rank, team FIFA points, match results, offense/defense/midfield score metrics and more. We will first use a Poisson regression model on both home and away team scores to predict score distribution for each team respectively, with a lasso penalty to select significant predictor variables and reduce collinearity. Using these relevant predictors, we will then fit a bivariate Poisson model that takes into account the dependency between home and away team goal distributions. Since we have a small number of goals, Poisson regression makes sense as it is intended for response variables that take on small, positive values. Getting results that are probabilistic distributions are important in our case because sports betters are interested in the distribution of results in order to be able to quantify their risk.
 
@@ -132,62 +138,88 @@ p4<-ggplot(data = matches, aes(x = defense_differential, y = score_differential)
 
 We see positive relationships with each of these potential predictors and the goal differential. These trends are something interesting we would like to explore in our numerical and probabilisitic models. However, the similarly-distributed scatterplots and lines of best fit could indicate a possible instance of multicollinearity between these predictors - this is something we must explore and do our best to avoid when fitting our models.
 
-# Methodology
+# Modelling Methodology
 
 We initially chose to use a GLM-based Poisson regression model to predict goals for home and away teams in each match, as Poisson regression is most appropriate when the response is a discrete count, as is the case for goals scored in a match. We wanted to perform both regularization and variable selection, as our dataset had a very large number of correlated predictors and we suspected that performance could be predicted using a much sparser set of variables; therefore, we introduced a LASSO penalty using the glmnet package, and 5-fold cross validated for the optimal value of lambda. However, we quickly realized that since the outcome of a soccer game is very dependent and how two specific teams interact with each other, we could not use univariate models that would predict a team's score in a vacuum. Hence, we finally decided to use a bivariate poisson regression model to account for these possible correlations.
 
 The general form of this model is as follows (cite later):
 
-Consider random variables $X_k$, K = 1, 2, 3 which follow independent Poisson distributions with parameters $\lambda_k$, respectively. Then random variables X = X1+X3 and Y = X2+X3 follow jointly a bivariate Poisson distribution. So, E(X) = $\lambda_1 + \lambda_3$ and E(Y) = $\lambda_2 + \lambda_3$. When we add covariates, we then have:
+Consider random variables $X_k$, K = 1, 2, 3 which follow independent Poisson distributions with parameters $\lambda_k$, respectively. Then random variables X and Y are given by $X = X_1+X_3$ and $Y = X_2+X_3$ and jointly follow a bivariate Poisson distribution. So, E(X) = $\lambda_1 + \lambda_3$ and E(Y) = $\lambda_2 + \lambda_3$. In our case, X represents goals scored by the home team, while Y represents goals score by the away team.
 
-$$(X_i, Y_i) \sim BP(\lambda_{1i}, \lambda_{2i}, \lambda_{3i})$$,
+When we add covariates, we then have:
 
-$$log(\lambda_{1i}) = w_{1i}^T\beta_1$$,
-$$log(\lambda_{2i}) = w_{2i}^T\beta_2$$,
+$$(X_i, Y_i) \sim BP(\lambda_{1i}, \lambda_{2i}, \lambda_{3i})$$
+$$log(\lambda_{1i}) = w_{1i}^T\beta_1$$
+$$log(\lambda_{2i}) = w_{2i}^T\beta_2$$
 $$log(\lambda_{3i}) = w_{3i}^T\beta_3$$
-where i = 1, . . . , n, denotes the observation number, $w_i$ denotes a vector of explanatory
-variables for the i-th observation used to model $\lambda_{ki}$ and $\beta_k$ denotes the corresponding vector of regression coefficients K = 1, 2, 3.
+
+where i = 1, . . . , n, is the observation number, $w_i$ is a vector of predictors for the i-th observation used to model $\lambda_{ki}$, and $\beta_k$ denotes the corresponding vector of regression coefficients K = 1, 2, 3.
 
 Upon research, we discovered that bivariate models with LASSO regularization have not been invented as of yet (or at least not in a form that is easy to implement). To simulate the potential benefits of this framework as much as possible, we decided to screen our variables using the results of our univariate LASSO models, choosing the sparser set of variables among the home and away models as final predictors in the bivariate model.
 
-As sports bettors are generally interested in a spread/probabilistic outlook on game outcomes to make an informed decision, we decided to run a 100,000 Monte Carlo simulations of our games to obtain estimated odds/probabilities of each game closing with a home team win, loss or draw. We did this by drawing randomly from bivariate Poisson distributions, whose parameters were outputted/estimated by our regression model based on predictor values. 
+As sports bettors are generally interested in a spread/probabilistic outlook on game outcomes to make an informed decision, we decided to run 100,000 Monte Carlo simulations of our games to obtain estimated odds/probabilities of each game closing with a home team win, loss or draw. We did this by drawing randomly from bivariate Poisson distributions, whose parameters were outputted/estimated by our regression model based on predictor values. 
 
-During this process, we tried a number of other models and datasets to build the most robust model - this included a multinomial model that predicted outcomes, as well as a bivariate Poisson on a larger dataset. However, when comparing accuracy using misclassfication error from our Monte Carlo draws, using 5-fold cross validation on our training set as well as predicting outcomes for the test set (i.e 2022 games), we found that our original dataset and model worked best and were the most statistically robust.
+During this process, we tried a number of other models and datasets to build the most robust model - this included a multinomial model that predicted outcomes, as well as a bivariate Poisson model on a far larger dataset that contained  possession stats, shot accuracy etc. for individual matches, which we could use to calculate running averages for each team. However, when comparing accuracy using misclassfication error from our Monte Carlo draws, using 5-fold cross validation on our training set as well as predicting outcomes for the test set (i.e 2022 games), we found that our original dataset and model worked best and were the most statistically robust.
 
-## Predicting Moneyline 
+Finally, we 
 
-Our first goal was to predict the distribution of win/loss/draw of certain game. We initially fit a bivariate Poisson model with around a dozen predictors for the outcome of a game, including the difference in FIFA offense scores between 2 teams, the difference in shots on targets between 2 teams, and more relevant game metrics. After conducting LASSO regularization, we were left with the coefficients selected to be in the final model. 
+## Assumptions: 
+Clearly, independence cannot be satisfied here as each team's result in a match is not independent of their result in another; however, for the purposes of our analysis, we can assume that our fairly large sample size can counter this to some extent and stay. Caveating this, the two primary assumptions that need to be satisfied are:
+
+1. Ensure that the response is a count, and that these counts are Poisson distributed. This means mean should be roughly equal to variance for goals scored for each team historically.
+2. There are linear relationships between log(response) and changes in predictor variables. Details are in the appendix. 
+
+The first of these is undoubtedly the most important - it is self-evident that the response is indeed a count, but 
+
+# Model Results
+
+
+## Interpretation
 
 Our final predictors for our bivariate poisson model were defense_differential, midfield_differential, and offense_differential. These predictors suggest that the FIFA rankings of the players on the respective teams are the most indicative in predicting match score outcomes. For every one unit the home defense is better than the away team, we can expect the rate parameter for home goals to be multiplying by a factor of $e^{0.0196-0.2269842040}$ = 0.812. For every one unit the home midfield is better than the away team, we can expect the rate parameter for home goals to be multiplying by a factor of $e^{0.0150079479 +0.1251729042}$ = 1.15. For every one unit the home offense is better than the away team, we can expect the rate parameter for home goals to be multiplying by a factor of $e^{0.0101+0.0692}$ = 2.017. 
 
-For every one unit the home defense is better than the away team, we can expect the rate parameter for away goals to be multiplied by a factor of $e^{-0.0009854082 - 0.2269842040}$ = 0.796. For every one unit the home midfield is better than the away team, we can expect the rate parameter for away goals to be multiplied by a factor of $e^{-0.02811+0.125}$=1.101. For every one unit the home offense is better than the away team, we can expect the rate parameter for away goals to be multiplied by a factor of $e^{-0.02289+0.0692}$=1.047. 
+For every one unit the home defense is better than the away team, we can expect the rate parameter for away goals to be multiplied by a factor of $e^{-0.0009854082 - 0.2269842040}$ = 0.796. For every one unit the home midfield is better than the away team, we can expect the rate parameter for away goals to be multiplied by a factor of $e^{-0.02811+0.125}$ = 1.101. For every one unit the home offense is better than the away team, we can expect the rate parameter for away goals to be multiplied by a factor of $e^{-0.02289+0.0692}$ = 1.047. 
 
-```
 ```{r}
 kable(fin_mod$coefficients)
 ```
-```
-From the model coefficients, it's interesting to note that some of the conclusions for the home and away team goals are seemingly contradictory - for example, our model predicted that for every one unit the home midfield is better than the away team, we can expect the rate parameter for home goals to be multiplying by a factor of $e^{0.0150079479 +0.1251729042}$ = 1.15, but also predicted that for every one unit the home midfield is better than the away team, we can expect the rate parameter for away goals to be multiplied by a factor of $e^{-0.02811+0.125}$=1.101. However, since 1.15 is greater than 1.101, we can say that the goal differential (home-away) will still be positive-  in the case that home midfield is one unit better than the away team the rate parameter for home goals is greater than the rate parameter for away goals. The coefficients for the defense seem a little bit counterintuitive, as it states that as defense score increases, the rate parameter for home goals decreases, implying that teams should weaken their defense to score more, which doesn't really make sense. However, a possible interpretation is that we can look at a focus on defense, midfield, and offense as a spectrum -- the more a team focuses on defense, to less they focus on offense, and thus may be less likely to score. 
+
+From the model coefficients, it's interesting to note that some of the conclusions for the home and away team goals are seemingly contradictory - for example, our model predicted that for every one unit the home midfield is better than the away team, we can expect the rate parameter for home goals to be multiplying by a factor of $e^{0.0150079479 +0.1251729042}$ = 1.15, but also predicted that for every one unit the home midfield is better than the away team, we can expect the rate parameter for away goals to be multiplied by a factor of $e^{-0.02811+0.125}$=1.101. However, since 1.15 is greater than 1.101, we can say that the goal differential (home-away) will still be positive - in the case that home midfield is one unit better than the away team, the rate parameter for home goals is greater than the rate parameter for away goals. The coefficients for the defense seem a little bit counterintuitive, as it states that as defense score increases, the rate parameter for home goals decreases, implying that teams should weaken their defense to score more, which doesn't really make sense. However, a possible interpretation is that we can look at a focus on defense, midfield, and offense as a spectrum -- the more a team focuses on defense, to less they focus on offense, and thus may be less likely to score. 
 
 For sports betters, the main takeaway is that a team's player composition - their defense, midfield, and offense player rankings - are the most important metrics to investigate (over other metrics like shots or saves in past games) when the results of a matchup. In addition, the composition of a team and their respective strengths in defense, midfield, and offense, is also indicative of how many goals they end up scoring compared to the other team and thus the final outcome of the game. 
 
+## Estimated Probabilities 
+
 ```{r}
-kable(confusion_mat)
+
 ```
 
 
-# Write about Odds Results here 
+## Predictive Accuracy
 
-In conclusion, our models tackles the important bet in soccer, the 3-way moneyline (win, loss, draw). For the group stage in the 2022 World Cup, we came up with relative probabilities for match outcome based on modeling the number of home goals and away goals on a bivariate poisson model. The aim of the model is to set what it thinks should be the odds of a international soccer match. We decided to see if our model could make money based on the pregame moneyline odds taken from an aggregation of sportsbooks.
+Based on our model's probabilities, we were wanted to see how often our model's most likely outcome for a given match would be the correct one. We calculated our confusion matrix below:
 
-For moneyline bets, our model would have made \$ -1000 dollars, (losing 1000) over the group stage. This is assuming you place a flat $100 bet for each match on the most likely line our model predicts (outcome with highest probability). While our model lost money, it still outperforms a bettor who places the same 100 dollars on the most likely line (which loses 2600). 
+```{r}
+kable(confusion_mat, caption = "Confusion Matrix for Model")
+```
 
-According to experts, the optimal betting strategy is to bet on underdogs, or in our case, less likely outcomes. Lines for unlikely outcomes have greater payout, whereas if you bet on a likely outcome, you will receive less payout. 
+This implied a win accuracy of about `r round(confusion_mat[6]/(confusion_mat[3] + confusion_mat[6]), 2) * 100`%, a loss accuracy of about `r round(confusion_mat[2]/(confusion_mat[2] + confusion_mat[5]), 2) * 100`%, and an overall accuracy of about `r round((confusion_mat[2] + confusion_mat[6]) /n_test_obs, 2) *100`%. Note that our model did not predict any draws at all, despite there being 10 draws across 48 games, which hence put our draw accuracy at zero. Although this last finding seems problematic, it must be acknowledged that draws are notoriously difficult to predict accurately - in fact, using an aggregation of sports books odds from OddsPortal (a popular sports betting website) to predict outcomes (cite) leads to exactly the same result:
 
+```{r}
+kable(confusion_mat_books, caption = "Confusion Matrix for Sports Books")
+```
 
-Sports bettors should heed caution though when using our model, as the draw accuracy is relatively low compared to win or loss. For 10/48 group stage matches that ended as draws, it only predicted 1/10 matches to end as a draw. It consistency performs worse at predicting draws, an issue that might be linked with the complexity of draws in the game of soccer itself. 
+From 
+the ultimate effect and implications of this will be discussed briefly in our conclusion.
 
-A few limitations do exist though. Sports are inherently hard to predict, which is why any model we built did not have great accuracy. If building high performing models was easy, then sports books would go out of business. Furthermore, it is difficult to take into account the interaction between two specific teams as they prepare customized game plans that differ based upon opponent. These were not taken into account in our predictors for the models were built. Future work may include building models to target other bets, such as over/under on total goals scored or various team/player prop bets. 
+# Conclusion 
 
+To summarize our work - our model tackles the most important bet in soccer, the 3-way moneyline (win, loss, draw). For the group stage in the 2022 World Cup, we came up with relative probabilities for each possible match outcome based on modeling the number of home goals and away goals on a bivariate Poisson model. We further analyzed our model coefficients and what they said about drivers of performance in soccer, as well as their implications for sports bettors. Finally, we compared our model's average accuracy over all matches to the accuracy implied by sports books odds. 
+
+In closing out our analysis, we wanted to see if our model could actually make us money on average; with payouts based on the pregame moneyline odds taken from an aggregation of sports books, we chose to simply bet on the most likely outcome for each match based on our model. Of course, this is not always the most optimal betting strategy - importantly, the objective of the model is to mark odds as accurately as possible for each match, not tell bettors who to bet on - but it would give us an idea of how profitable the model would be if we were to make the safest bets possible.
+
+For moneyline bets, our model would have obtained a net profit of -\$327, i.e it would lose 327 dollars over all 48 bets across group stage matches. This is assuming one placed a flat \$100 bet for each match on the most likely line as predicted by our model, as previously mentioned. However, while our model lost money, it still **outperforms** a bettor who places the same 100 dollars on the most likely line as indicated by the sports books' odds, who would lose roughly \$2600. This makes perfect sense - according to most sports betting experts, the optimal betting strategy is to bet on underdogs at least some of the time i.e bet on less likely outcomes in at least some matches. This is because lines for unlikely outcomes have far greater payout, so while betting on likely outcomes would probably end up in making the right call more often, this does not ensure long-term profit. However, it is reassuring all the same that our model's had odds and calls marked more accurately for these "safe" bets.
+
+Most of our work's limitations stem from the nature of the problem we are trying to solve - sports are inherently hard to predict, which is why any model we built did not have great accuracy. If building high performing models was easy, then sports books would simply go out of business! Much of the intrigue of sports betting is indeed knowing when to make the call on the underdog, something our model simply cannot capture. Furthermore, it is difficult to take into account the interaction between two specific teams, as they prepare customized game plans that differ based upon opponent that are not released to the public. These intangibles were not accounted for by the predictors for the models were built. Sports bettors should heed also caution when using our model (or any model) to accurately predict draws; as we saw before, it predicted none of the 10 draws across 48 matches correctly. This limitation is likely linked to the low-scoring nature of soccer. Future work may include building models to target other bets, such as over/under on total goals scored or various team/player prop bets. 
 
 

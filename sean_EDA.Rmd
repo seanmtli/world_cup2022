@@ -235,6 +235,7 @@ results_and_odds2$pred_outcome <- test_actuals$pred_outcome
 
 
 #odds
+
 RUN THIS CODE CHUNK TO GET MONEY
 ```{r}
 library(readxl)
@@ -246,6 +247,8 @@ results_and_odds <- results_and_odds %>%
          drawProb = case_when(drawOdds>0 ~ (100/(drawOdds+100)), TRUE ~ (-drawOdds/(-drawOdds+100))),
          loseProb = case_when(loseOdds>0 ~ (100/(loseOdds+100)), TRUE ~ (-loseOdds/(-loseOdds+100)))
          )
+
+results_and_odds2 <-read_csv("data/results2.csv")
 
 ```
 
