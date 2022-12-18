@@ -39,7 +39,7 @@ The dataset we use is a set of thousands of international soccer matches from Ju
 # Data
 Our analysis utilized a few different datasets, which were combined (and later cleaned) into one final dataset. The main dataset was found on [GitHub](https://github.com/martj42/international_results), which gathered data from [Wikipedia](https://en.wikipedia.org/wiki/Special:Search?go=Go&search=soccer+results&ns0=1), the [Rec.Sport.Soccer Statistics Foundation](rsssf.com) (a group which "strives to be the most comprehensive and complete" archive of soccer statistics), and individual soccer team websites. It features the results of 44,341 international soccer matches between 1872 (the year of the first official international match) and 2022.
 
-We also used three other datasets to give us the predictor variables we need to successfully analyze the results and scores of international soccer matches. These included [FIFA World Rankings](https://www.fifa.com/fifa-world-ranking/men?dateId=id13792) scraped from 2002 onwards, [FIFA Player and Team Data](https://www.kaggle.com/datasets/stefanoleone992/fifa-22-complete-player-dataset), which details the ratings, positions, and other metrics of individual players in the FIFA video game series from the 2015 to 2022 versions of the game, and (box dataset), which tells us additional game specific results like shots on target, possesion, red/yellow cards etc. 
+We also used three other datasets to give us the predictor variables we need to successfully analyze the results and scores of international soccer matches. These included [FIFA World Rankings](https://www.fifa.com/fifa-world-ranking/men?dateId=id13792) scraped from 2002 onwards, [FIFA Player and Team Data](https://www.kaggle.com/datasets/stefanoleone992/fifa-22-complete-player-dataset), which details the ratings, positions, and other metrics of individual players in the FIFA video game series from the 2015 to 2022 versions of the game, and (box dataset), which tells us additional game specific results like shots on target, possession, red/yellow cards etc. 
 
 # Data Cleaning 
 In order for the data pulled from Kaggle to be usable, we had to clean the data first. We first joined our international match dataset from kaggle with the box dataset by year, home team, away team, home team score, and away team score in order to get additional metrics (shots on goal, possession, red/yellow cards etc.) for each match up. In order to make the data more usable, we created new variables that were the differentials between home and away scores for specific categories - for example, we created goalkeeper_differential which equates the home_team_goalkeeper_score - away_team_goalkeeper_score. 
@@ -48,4 +48,90 @@ Ultimately, we ended up with 13 new variables which are: difference between home
 
 
 Additionally, we had to create the World Cup 2022 Dataset that has the same columns as our model dataset in order to use it as a final test set. In order to do this, we acquired a CSV with the group stage teams and their FIFA point metrics (offense, defense, midfield, rank, points, goalkeeper), then took averages of the last 5 games as values for other predictors (avg goals, avg shots on target, etc). The reason we had to do this is because typically, in the case of sports betting, the game hasn't occured so those metrics would not be available yet; thus, we are taking the averages as the inputs. Lastly, using these values, we created a dataset that has the same columns as our model dataset by computing differentials as the difference in scores between the home and away team. 
+
+## Data Cleaning
+
+In order to combine these datasets into a usable one, we first had to clean the data. Upon merging all of the relevant datasets together for the international matches, we discovered that a lot of these matches had non-existent values for box scores or FIFA ratings. We wanted to be able to include all of these potential predictors in our model diagnostics, so we elected to remove these observations from the model. This led to us getting a dataset of mostly recent international matches (as box score data was not widely recorded in the world of soccer until the 2010s).
+
+Our final dataset held data for 786 international matches, including box score data for each team. To make the creation of a predictive model easier, we decided to combine data for each team into a "differential" metric, which found the difference between a statistic for the home team and that same statistic for the away team. Our final set of predictors included FIFA goalkeeper score differential, FIFA defense score differential, FIFA midfield score differential, FIFA offense score differential, percentage of possession differential, shots taken differential, shots on target differential, fouls differential, yellow cards differential, red cards differential, FIFA team ranking differential, whether the match was played at a neutral stadium (i.e. neither team was playing in their home stadium), and the teams playing in the match. For our response variables, we have the home team's score in the match, the away team's score in the match, the computed score differential (home team score minus away team score), and a categorical outcome of the game, where matches were assigned one of three outcomes: the home team winning, the home team losing, and the match ending in a draw (note that for neutral matches, a team is randomly assigned to be the home team).
+
+For our predictor variables above, it is important to note that a positive differential value does not always indicate a good outcome for the home team - for example, a positive shots on target differential indicates that the home team was able to place more shot attempts on the goal than the away team, which is a positive outcome. However, a positive fouls (or yellow and red cards) differential indicates that the home team committed more penalties, which is a negative outcome. This is an important observation to keep in mind when observing our graphs and models featured later in this report.
+
+
+# Exploratory Data Analysis
+
+To begin our analysis, we first looked at the distribution of the score differentials and the game outcomes. Since the outcomes of the international matches is a categorical variable that can only take on three values, we show a table approach:
+
+```{r}
+t1 <- matches %>%
+  count(home_team_result) %>%
+  rename("Home Team Result" = home_team_result,
+         Count = n)
+knitr::kable(t1, caption = "International Match Results") #%>%
+  #kable_styling(position = "center",
+  #              latex_options = "HOLD_position")
+```
+We see that the home team appears to win more often than any other outcome - this will be an important thing to factor into our model as it could accidentally skew outcomes in favor of the home team. Diving further into these games, we see a histogram of the score differentials of all the matches in our dataset:
+
+```{r fig.width=5,fig.height=3}
+ggplot(data = matches, aes(x = score_differential)) +
+  geom_bar(stat = "count") +
+  geom_vline(xintercept = mean(matches$score_differential),
+             color = "red") +
+  geom_vline(xintercept = median(matches$score_differential),
+             color = "blue") +
+  labs(x = "Score Differential",
+       y = "Count",
+       title = "Score Differential Distribution of International Matches",
+       subtitle = "Score Differential = Home Team Score - Away Team Score")
+```
+
+The score differentials range from -6 to 7, and it appears that the distribution of score differentials appears to be close to normally distributed. This graph could indicate that if a team were to win or lose, it is most likely by only a goal or two, as those outcomes make up the bulk of the distribution. The median (blue line) of the score differentials is zero and the mean (red line) of the score differentials is `r round(mean(matches$score_differential),3)`.
+
+Next, we wanted to see if we could associate any of the predictors visually with the outcome of the game. The predictor variable that appeared to have the largest effect on the goal differential was the shots on target differential:
+
+```{r fig.width=5,fig.height=3}
+ggplot(data = matches, aes(x = shots_on_target_differential, y = score_differential)) +
+  geom_point(alpha = 0.1) +
+  geom_smooth(method="lm") +
+  labs(x = "Shots on Target Differential",
+       y = "Goal Differential",
+       title = "Game Outcome Related to Difference in Shots on Target")
+```
+
+This made sense to us as an increase in the number of shots on target relative to the other team indicates that there are more opportunities for a team to score. Therefore, an increase in the shots on target differential indicates that they are more likely to win (and win my more goals).
+
+We also saw similar trends (but to a lesser extent) with each of the rating metrics from the FIFA series, shown below:
+
+```{r}
+p1<-ggplot(data = matches, aes(x = goalkeeper_differential, y = score_differential)) +
+  geom_point(alpha=0.3) +
+  geom_smooth(method="lm") +
+  labs(x = "Goalkeeper Rating Diff",
+       y = "Score Differential")
+
+p2<-ggplot(data = matches, aes(x = midfield_differential, y = score_differential)) +
+  geom_point(alpha=0.3) +
+  geom_smooth(method="lm") +
+  labs(x = "Midfield Rating Diff",
+       y = "Score Differential")
+
+p3<-ggplot(data = matches, aes(x = offense_differential, y = score_differential)) +
+  geom_point(alpha=0.3) +
+  geom_smooth(method="lm") +
+  labs(x = "Offense Rating Diff",
+       y = "Score Differential")
+
+p4<-ggplot(data = matches, aes(x = defense_differential, y = score_differential)) +
+  geom_point(alpha=0.3) +
+  geom_smooth(method="lm") +
+  labs(x = "Defense Rating Diff",
+       y = "Score Differential")
+
+(p1+p2)/(p3+p4)
+```
+
+We see positive relationships with each of these potential predictors and the goal differential. These trends are something interesting we would like to explore in our numerical and probabilisitic models. However, the similarly-distributed scatterplots and lines of best fit could indicate a possible instance of multicollinearity between these predictors - this is something we must explore and do our best to avoid when fitting our models.
+
+# Methodology
 

@@ -70,4 +70,153 @@ missing <- read_xlsx("data/last5.xlsx")
 ```
 
 
+## Another attempt at modeling
+
+###Multinomial Logistic Regression. Predicting Win/Loss/Draw. For moneyline.
+
+```{r}
+#train-test split
+library(nnet)
+#factor the result, draw is baseline
+train_data_biv$home_team_result <- as.factor(train_data_biv$home_team_result) 
+
+sample <- sample(c(TRUE, FALSE), nrow(train_data_biv), replace=TRUE, prob=c(0.7,0.3))
+traindf  <- train_data_biv[sample, ]
+testdf   <- train_data_biv[!sample, ]
+```
+
+
+```{r}
+#actual model + summary
+log_model <- multinom(home_team_result ~ fifa_rank_differential + offense_differential + goalkeeper_differential+
+          neutral_location+  midfield_differential+ defense_differential+
+       shots_on_target_differential+shots_differential+yellow_cards_differential+fouls_differential, data = traindf, model = TRUE)
+summary(log_model)
+```
+
+
+Accuracy
+
+```{r}
+# Predicting the values for train dataset
+traindf$result_pred <- predict(log_model, newdata = traindf, "class")
+
+# Building classification table
+train_tab <- table(traindf$home_team_result, traindf$result_pred)
+
+# Calculating accuracy - sum of diagonal elements divided by total obs
+print(paste0("training accuracy: " , round((sum(diag(train_tab))/sum(train_tab))*100,2)))
+train_tab
+```
+
+```{r}
+# Predicting the values for train dataset
+testdf$result_pred <- predict(log_model, newdata = testdf, "class")
+
+# Building classification table
+test_tab <- table(testdf$home_team_result, testdf$result_pred)
+
+# Calculating accuracy - sum of diagonal elements divided by total obs
+print(paste0("test accuracy: " , round((sum(diag(test_tab))/sum(test_tab))*100,2)))
+test_tab
+```
+predicted is on the top, actual is on the side
+
+
+now testing on the actual world cup matches
+
+```{r}
+
+
+actualworldcup <- final_model2_data %>%  mutate(home_team_result = 
+                                                  case_when(country1_score-country2_score>0 ~ "Win", 
+                                                           country1_score-country2_score == 0 ~ "Draw",
+                                                           country1_score-country2_score<0 ~ "Lose")) %>% select(home_team_result,fifa_rank_differential,offense_differential, goalkeeper_differential,neutral_location,midfield_differential,defense_differential,
+       shots_on_target_differential,shots_differential,yellow_cards_differential,fouls_differential)
+actualworldcup <- actualworldcup %>% mutate(home_team_result = factor(home_team_result)) %>% 
+  mutate(home_team_result = fct_relevel(home_team_result, c("Draw","Lose","Win"))) %>% 
+  mutate(neutral_location = case_when(neutral_location~0, TRUE~1)) #%>% 
+  #arrange(home_team_result)
+
+
+ 
+
+# Predicting the values for train dataset
+actualworldcup$result_pred <- predict(log_model, newdata = actualworldcup, "class")
+
+# Building classification table
+test_tab <- table(actualworldcup$home_team_result, actualworldcup$result_pred)
+
+# Calculating accuracy - sum of diagonal elements divided by total obs
+print(paste0("test accuracy: " , round((sum(diag(test_tab))/sum(test_tab))*100,2)))
+test_tab
+```
+### Poisson Model for # of goals for any team
+
+```{r}
+# Building train and test set for CV
+set.seed(1)
+
+n <- nrow(train_data_biv)
+
+
+train_nums <- seq(1, 0.8* nrow(cups_only_nona), 1)
+
+#all the X variables for test data
+test_data = cups_only_nona[-train_nums, ] %>%
+  select(rank_differential, offense_differential, defense_differential, midfield_differential,
+         points_differential, neutral_location) # add cap_diff if using
+#predict function needs a mat, makes categorical into dummy vars
+mat = model.matrix(~., test_data)
+# actual y - values
+test_home <- cups_only_nona[-train_nums, "home_team_score"] %>%
+  pull()
+test_away <- cups_only_nona[-train_nums, "away_team_score"] %>% 
+  pull()
+
+train_data <- cups_only_nona[train_nums, ]
+
+
+# Model equations 
+home_x <- model.matrix(home_team_score ~ rank_differential + offense_differential + 
+                         defense_differential + midfield_differential + 
+         points_differential + neutral_location, 
+                       data = train_data) # add cap_diff if using
+away_x <- model.matrix(away_team_score ~  + rank_differential + offense_differential + 
+                         defense_differential + midfield_differential + 
+         points_differential + neutral_location, 
+                       data = train_data) # add cap_diff if using
+
+home_y <- train_data$home_team_score
+away_y <- train_data$away_team_score
+
+
+# Cross validating 
+lambda_grid <- 10^seq(-2, 10, length.out = 5000)
+home_model <- cv.glmnet(home_x, home_y, alpha = 1, 
+                        lambda = lambda_grid, family = "poisson",
+                        nfolds = 5)
+away_model <- cv.glmnet(away_x, away_y, alpha = 1, lambda = lambda_grid, family = "poisson", 
+                        nfolds = 5)
+
+home_lambda <- home_model$lambda.min
+away_lambda <- away_model$lambda.min
+
+
+# Fitting final models
+
+final_home <- glmnet(home_x, home_y, alpha = 1, lambda = home_lambda, family = "poisson")
+final_away <- glmnet(away_x, away_y, alpha = 1, lambda = away_lambda, family = "poisson")
+
+final_home$beta
+final_away$beta
+
+# Generating preds
+home_preds <- predict(home_model, newx = mat, type = "response")
+away_preds <- predict(away_model, newx = mat, type = "response")
+```
+
+
+
+
 
