@@ -3,6 +3,7 @@ title: "Predicting Sports Bets within the FIFA 2022 World Cup"
 author: "Aaditya Warrier, Sean Li, Christina Yoh, Brian Janger"
 output: pdf_document
 urlcolor: blue
+geometry: margin = 2cm
 ---
 
 ```{r setup, include=FALSE}
@@ -98,6 +99,7 @@ Next, we wanted to see if we could associate any of the predictors visually with
 ggplot(data = matches, aes(x = shots_on_target_differential, y = score_differential)) +
   geom_point(alpha = 0.1) +
   geom_smooth(method="lm") +
+  geom_hline(yintercept = 0, linetype = 2, color = "red") +
   labs(x = "Shots on Target Differential",
        y = "Goal Differential",
        title = "Game Outcome Related to Difference in Shots on Target")
@@ -111,23 +113,27 @@ We also saw similar trends (but to a lesser extent) with each of the rating metr
 p1<-ggplot(data = matches, aes(x = goalkeeper_differential, y = score_differential)) +
   geom_point(alpha=0.3) +
   geom_smooth(method="lm") +
+    geom_hline(yintercept = 0, linetype = 2, color = "red") +
   labs(x = "Goalkeeper Rating Diff",
        y = "Score Differential")
 
 p2<-ggplot(data = matches, aes(x = midfield_differential, y = score_differential)) +
   geom_point(alpha=0.3) +
   geom_smooth(method="lm") +
+    geom_hline(yintercept = 0, linetype = 2, color = "red") +
   labs(x = "Midfield Rating Diff",
        y = "Score Differential")
 
 p3<-ggplot(data = matches, aes(x = offense_differential, y = score_differential)) +
   geom_point(alpha=0.3) +
   geom_smooth(method="lm") +
+    geom_hline(yintercept = 0, linetype = 2, color = "red") +
   labs(x = "Offense Rating Diff",
        y = "Score Differential")
 
 p4<-ggplot(data = matches, aes(x = defense_differential, y = score_differential)) +
   geom_point(alpha=0.3) +
+    geom_hline(yintercept = 0, linetype = 2, color = "red") +
   geom_smooth(method="lm") +
   labs(x = "Defense Rating Diff",
        y = "Score Differential")
