@@ -232,4 +232,151 @@ write_csv(world_cup_teams, "data/FIFA2022_GroupStageTeams.csv")
 ```
 
 
+```{r}
+ggplot(data = matches,
+       aes(x = home_team_result,
+           y = shots_on_target_differential)) +
+  geom_boxplot()
+
+ggplot(data = matches,
+       aes(x = home_team_result,
+           y = yellow_cards_differential)) +
+  geom_boxplot()
+```
+
+```{r}
+group_stage <- read_xlsx("data/group_pred_with_odds.xlsx")
+
+profit = 0
+for(i in 1:nrow(group_stage))
+{
+  if(group_stage[i,"outcome"]=="Win" &
+     group_stage[i,"pred_outcome"]=="Likely Win")
+  {
+    if(group_stage[i,"winOdds"]<0){
+      profit = profit + (100/-group_stage[i,"winOdds"])*100
+    }
+    else
+    {
+      profit = profit + group_stage[i,"winOdds"]
+    }
+  }
+  else if(group_stage[i,"outcome"]=="Draw" &
+     group_stage[i,"pred_outcome"]=="Likely Draw")
+  {
+    if(group_stage[i,"drawOdds"]<0){
+      profit = profit + (100/-group_stage[i,"drawOdds"])*100
+    }
+    else
+    {
+      profit = profit + group_stage[i,"drawOdds"]
+    }
+  }
+  else if(group_stage[i,"outcome"]=="Loss" &
+     group_stage[i,"pred_outcome"]=="Likely Loss")
+  {
+    if(group_stage[i,"loseOdds"]<0){
+      profit = profit + (100/-group_stage[i,"loseOdds"])*100
+    }
+    else
+    {
+      profit = profit + group_stage[i,"loseOdds"]
+    }
+  }
+  else
+  {
+    profit = profit - 100
+  }
+}
+print(profit %>%
+        rename(profit = winOdds))
+```
+
+
+
+
+
+
+
+```{r}
+profit2 = 0
+for(i in 1:nrow(group_stage))
+{
+  if(group_stage[i,"winOdds"] < group_stage[i,"drawOdds"] &
+     group_stage[i,"winOdds"] < group_stage[i,"loseOdds"])
+  {
+    if(group_stage[i,"outcome"]=="Win" & 
+       group_stage[i,"winOdds"] < 0)
+    {
+      profit2 = profit2 + (100/-group_stage[i,"winOdds"])*100
+    }
+    else if(group_stage[i,"outcome"]=="Win")
+    {
+      profit2 = profit2 + group_stage[i,"winOdds"]
+    }
+    else{
+      profit2 = profit2 - 100
+    }
+  }
+  
+  else if(group_stage[i,"drawOdds"] < group_stage[i,"winOdds"] &
+     group_stage[i,"drawOdds"] < group_stage[i,"loseOdds"])
+  {
+    if(group_stage[i,"outcome"]=="Draw" & 
+       group_stage[i,"drawOdds"] < 0)
+    {
+      profit2 = profit2 + (100/-group_stage[i,"drawOdds"])*100
+    }
+    else if(group_stage[i,"outcome"] == "Draw")
+    {
+      profit2 = profit2 + group_stage[i,"drawOdds"]
+    }
+    else{
+      profit2 = profit2 - 100
+    }
+  }
+  
+  else if(group_stage[i,"loseOdds"] < group_stage[i,"winOdds"] &
+     group_stage[i,"loseOdds"] < group_stage[i,"drawOdds"])
+  {
+    if(group_stage[i,"outcome"]=="Lose" & 
+       group_stage[i,"loseOdds"] < 0)
+    {
+      profit2 = profit2 + (100/-group_stage[i,"loseOdds"])*100
+    }
+    else if(group_stage[i,"outcome"] == "Lose")
+    {
+      profit2 = profit2 + group_stage[i,"loseOdds"]
+    }
+    else{
+      profit2 = profit2 - 100
+    }
+  }
+}
+print(profit2 %>%
+        rename(profit = winOdds))
+```
+
+
+
+```{r}
+correct_guesses <- group_stage %>%
+  filter(pred_outcome == "Likely Win" & outcome == "Win" |
+           pred_outcome == "Likely Draw" & outcome=="Draw" |
+           pred_outcome == "Likely Loss" & outcome=="Loss")
+nrow(correct_guesses)
+nrow(group_stage)
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
