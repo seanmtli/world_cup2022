@@ -165,10 +165,32 @@ During this process, we tried a number of other models and datasets to build the
 
 Clearly, independence cannot be satisfied here as each team's result in a match is not independent of their result in another; however, for the purposes of our analysis, we can assume that our fairly large sample size can counter this to some extent and stay. Caveating this, the two primary assumptions that need to be satisfied are:
 
-1. Ensure that the response is a count, and that these counts are Poisson distributed. This means mean should be roughly equal to variance for goals scored for each team historically.
+1. Ensure that the response is a count, and that these counts are Poisson distributed. This means mean should be roughly equal to variance for goals scored across all of our historical matches we use as a training set.
 2. There are linear relationships between log(response) and changes in predictor variables. Details are in the appendix. 
 
-The first of these is undoubtedly the most important - it is self-evident that the response is a count, but 
+The first of these is undoubtedly the most important - we can examine the mean and variance of historical goals, as well as visualize their distribution below (it is self-evident that the response is a count):
+
+```{r}
+# biv_cups_only_nona %>%
+#   group_by(home_team) %>%
+#   summarize(mean_score = mean(home_team_score), var_score = var(home_team_score))
+# 
+# biv_cups_only_nona %>%
+#   group_by(away_team) %>%
+#   summarize(mean_score = mean(home_team_score), var_score = var(home_team_score))
+
+biv_cups_only_nona %>%
+  summarize(mean_score = mean(home_team_score), var_score = var(home_team_score))
+
+biv_cups_only_nona %>%
+  summarize(mean_score = mean(away_team_score), var_score = var(away_team_score))
+
+par(mfrow = c(1,2))
+hist(biv_cups_only_nona$home_team_score, main = "Home Goals Distribution")
+hist(biv_cups_only_nona$away_team_score, main = "Away Goals Distribution")
+
+```
+
 
 ## Creating Moneyline Estimations
 
