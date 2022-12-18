@@ -178,7 +178,16 @@ kable(confusion_mat)
 
 # Write about Odds Results here 
 
+In conclusion, our models tackles the important bet in soccer, the 3-way moneyline (win, loss, draw). For the group stage in the 2022 World Cup, we came up with relative probabilities for match outcome based on modeling the number of home goals and away goals on a bivariate poisson model. The aim of the model is to set what it thinks should be the odds of a international soccer match. We decided to see if our model could make money based on the pregame moneyline odds taken from an aggregation of sportsbooks.
 
+For moneyline bets, our model would have made \$ -1000 dollars, (losing 1000) over the group stage. This is assuming you place a flat $100 bet for each match on the most likely line our model predicts (outcome with highest probability). While our model lost money, it still outperforms a bettor who places the same 100 dollars on the most likely line (which loses 2600). 
+
+According to experts, the optimal betting strategy is to bet on underdogs, or in our case, less likely outcomes. Lines for unlikely outcomes have greater payout, whereas if you bet on a likely outcome, you will receive less payout. 
+
+
+Sports bettors should heed caution though when using our model, as the draw accuracy is relatively low compared to win or loss. For 10/48 group stage matches that ended as draws, it only predicted 1/10 matches to end as a draw. It consistency performs worse at predicting draws, an issue that might be linked with the complexity of draws in the game of soccer itself. 
+
+A few limitations do exist though. Sports are inherently hard to predict, which is why any model we built did not have great accuracy. If building high performing models was easy, then sports books would go out of business. Furthermore, it is difficult to take into account the interaction between two specific teams as they prepare customized game plans that differ based upon opponent. These were not taken into account in our predictors for the models were built. Future work may include building models to target other bets, such as over/under on total goals scored or various team/player prop bets. 
 
 
 
