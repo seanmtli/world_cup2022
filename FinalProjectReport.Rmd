@@ -13,14 +13,17 @@ knitr::opts_chunk$set(echo = FALSE,
 
 ```{r load-libraries}
 # PUT ALL LOADED LIBRARIES HERE
-
+library(tidyverse)
+library(knitr)
+#library(kableExtra)
+library(patchwork)
 
 ```
 
 ```{r read-data}
 # READ IN ANY DATASETS HERE
 # MUTATE DATSETS AS NECESSARY HERE
-
+matches <- read_csv("data/cleaned_matches.csv")
 
 ```
 
@@ -41,7 +44,7 @@ Our analysis utilized a few different datasets, which were combined (and later c
 
 We also used three other datasets to give us the predictor variables we need to successfully analyze the results and scores of international soccer matches. These included [FIFA World Rankings](https://www.fifa.com/fifa-world-ranking/men?dateId=id13792) scraped from 2002 onwards, [FIFA Player and Team Data](https://www.kaggle.com/datasets/stefanoleone992/fifa-22-complete-player-dataset), which details the ratings, positions, and other metrics of individual players in the FIFA video game series from the 2015 to 2022 versions of the game, and (box dataset), which tells us additional game specific results like shots on target, possession, red/yellow cards etc. 
 
-# Data Cleaning 
+# Data Cleaning
 In order for the data pulled from Kaggle to be usable, we had to clean the data first. We first joined our international match dataset from kaggle with the box dataset by year, home team, away team, home team score, and away team score in order to get additional metrics (shots on goal, possession, red/yellow cards etc.) for each match up. In order to make the data more usable, we created new variables that were the differentials between home and away scores for specific categories - for example, we created goalkeeper_differential which equates the home_team_goalkeeper_score - away_team_goalkeeper_score. 
 
 Ultimately, we ended up with 13 new variables which are: difference between home and away team goalkeeper score (FIFA game score of highest ranked goalkeeper of team), difference between home and away team defense score (average FIFA game score of 4 highest ranked defensive players of the team), difference between home and away team offense score (average FIFA game score of 3 highest ranked defensive players of the team), difference between home and away team midfield score (average FIFA game score of 4 highest ranked midfield players of the team) , difference between possesion %, difference between shots on target, difference between shots, difference between yellow cards received, difference between shots, difference between red cards received, difference between fouls received, difference between saves made, difference between goals scored, and difference between FIFA rank.   
