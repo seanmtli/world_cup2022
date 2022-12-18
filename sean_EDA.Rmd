@@ -254,8 +254,13 @@ results_and_odds2 <-read_csv("data/results2.csv")
 
 
 ```{r}
-results_and_odds %>% 
-  filter(outcome == "Draw")
+results_and_odds2 %>% 
+  select(outcome,pred_outcome,pred_win_prob,pred_draw_prob,pred_loss_prob,winProb,drawProb,loseProb) %>% 
+  mutate(sportsoutcome = case_when(
+    pmax(winProb, loseProb, drawProb) == drawProb ~ "Likely Draw",
+    pmax(winProb, loseProb, drawProb) == winProb ~ "Likely Win",
+    pmax(winProb, loseProb, drawProb) == loseProb ~ "Likely Loss",
+  ))
 ```
 
 
@@ -273,6 +278,9 @@ In conclusion, our models tackles the important bet in soccer, the 3-way moneyli
 For moneyline bets, our model would have made \$ -1000 dollars, (losing 1000) over the group stage. This is assuming you place a flat $100 bet for each match on the most likely line our model predicts (outcome with highest probability). While our model lost money, it still outperforms a bettor who places the same 100 dollars on the most likely line (which loses 2600). 
 
 According to experts, the optimal betting strategy is to bet on underdogs, or in our case, less likely outcomes. Lines for unlikely outcomes have greater payout, whereas if you bet on a likely outcome, you will receive less payout. 
+
+One intuitive way to apply our findings for future matchups is to spot significant differences between the sports book odds and the ones our model puts out. A significant difference could mean that we see a value bet in a less likely event according to a sports book but more likely according to the model. For example: Let's take a look at the surprising England - United States match which had the pregame line of -208, 326, 696 for an England win,draw, and loss respectively. 
+Furthermore, one can apply a number of betting strategies given a set of odds our model generates, but that is beyond the scope of the project.  
 
 
 Sports bettors should heed caution though when using our model, as the draw accuracy is relatively low compared to win or loss. For 10/48 group stage matches that ended as draws, it only predicted 1/10 matches to end as a draw. It consistency performs worse at predicting draws, an issue that might be linked with the complexity of draws in the game of soccer itself. 
