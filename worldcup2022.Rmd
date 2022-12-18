@@ -596,7 +596,7 @@ final_model2_data <- matches_results_2022 %>%
   .[1:48, ]
 
 final_model1_data <- final_model2_data %>%
-  select(date, country1, country2, country1_score, country2_score, 
+  select(date,country1, country2, country1_score, country2_score, 
          offense_differential, defense_differential, midfield_differential) 
 ```
 
@@ -745,113 +745,113 @@ confusion_mat[2]/(confusion_mat[2] + confusion_mat[5])
 
 
 ```{r final_2022_predictions--model_2, warning=FALSE}
-#all the differentials
-biv_cleaned_matches<- cleaned_matches %>%
-  mutate(neutral_location = ifelse(neutral_location == TRUE, 1, 0))
-
-
-#final model2 data is the training data 
-test_home <- final_model2_data[, "country1_score"] 
-test_away <- final_model2_data[, "country2_score"] 
-
-#getting three datasets from this, one for each matrix of X for the biv poisson model
-#they also include intercept
-td1 <- final_model2_data %>%
-         select(fifa_rank_differential, offense_differential,goalkeeper_differential,
-          neutral_location,
-       shots_on_target_differential,shots_differential,yellow_cards_differential,fouls_differential) %>% 
-  mutate(int_col = rep(1,nrow(.))) %>% 
-  relocate(int_col)
-td2 <- final_model2_data %>%
-         select(fifa_rank_differential, offense_differential,goalkeeper_differential,
-          neutral_location, 
-       shots_on_target_differential,shots_differential,yellow_cards_differential,fouls_differential) %>% 
-  mutate(int_col = rep(1,nrow(.))) %>% 
-  relocate(int_col)
-td3 <- final_model2_data %>%
-         select(fifa_rank_differential, offense_differential,goalkeeper_differential,
-          neutral_location,
-       shots_on_target_differential,shots_differential,yellow_cards_differential,fouls_differential) %>% 
-  mutate(int_col = rep(1,nrow(.))) %>% 
-  relocate(int_col)
-
-#same as above
-train_data_biv <- biv_cleaned_matches
-
-
-#not split... make train data
-fin_mod <- lm.bp(l1 = home_team_score~ fifa_rank_differential + offense_differential + goalkeeper_differential +
-                   neutral_location+ shots_on_target_differential + shots_differential+ yellow_cards_differential 
-                 +fouls_differential,
-                 l2 = away_team_score~ fifa_rank_differential + offense_differential + goalkeeper_differential +
-                   neutral_location+ shots_on_target_differential + shots_differential+ yellow_cards_differential +fouls_differential,
-                 l3 = ~ fifa_rank_differential + offense_differential + goalkeeper_differential +
-                   neutral_location+ shots_on_target_differential + shots_differential+ yellow_cards_differential +fouls_differential, 
-                 data = train_data_biv)
-
-
-# ok multiply
-final_lambdas <- tibble(lambda_1 = exp(as.matrix(td1) %*% as.matrix(fin_mod$beta1)),
-                        lambda_2 = exp(as.matrix(td2) %*% as.matrix(fin_mod$beta2)),
-                        lambda_3 = exp(as.matrix(td3) %*% as.matrix(fin_mod$beta3)))
-
-
-n_test_obs <- nrow(final_lambdas)
-n_sims <- 100000
-set.seed(1)
-all_monte_carlos <- as.data.frame(matrix(NA, nrow = n_sims, ncol = 2*n_test_obs))
-for(i in 1:n_test_obs) {
-  monte_carlo <- rbvpois(n_sims, final_lambdas$lambda_1[i], 
-                       final_lambdas$lambda_2[i], 
-                       final_lambdas$lambda_3[i])
-  all_monte_carlos[, (2*i-1)] <- monte_carlo[, 1]
-  all_monte_carlos[, (2*i)] <- monte_carlo[, 2]
-}
-
-test_actuals <- tibble(home = test_home, away = test_away) %>%
-  mutate(outcome = case_when(
-    test_home - test_away == 0 ~ "Draw",
-    test_home - test_away > 0 ~ "Win",
-    test_home - test_away < 0 ~ "Loss"
-  ),
-  pred_win_prob = NA,
-  pred_loss_prob = NA,
-  pred_draw_prob = NA
-  )
-
-for(i in 1:n_test_obs) {
-  test_actuals[i, "pred_win_prob"] <- 
-    (sum(all_monte_carlos[, (2*i - 1)] - all_monte_carlos[, (2*i)] > 0))/n_sims
-  test_actuals[i, "pred_loss_prob"] <- 
-    (sum(all_monte_carlos[, (2*i - 1)] - all_monte_carlos[, (2*i)] < 0)) /n_sims
-  test_actuals[i, "pred_draw_prob"] <- 
-    (sum(all_monte_carlos[, (2*i - 1)] - all_monte_carlos[, (2*i)] == 0)) /n_sims  
-}
-
-test_actuals <- test_actuals %>%
-  mutate(pred_outcome = case_when(
-    pmax(pred_win_prob, pred_loss_prob, pred_draw_prob) == pred_draw_prob ~ "Likely Draw",
-    pmax(pred_win_prob, pred_loss_prob, pred_draw_prob) == pred_win_prob ~ "Likely Win",
-    pmax(pred_win_prob, pred_loss_prob, pred_draw_prob) == pred_loss_prob ~ "Likely Loss"
-
-  ))
-
-# Confusion matrix assuming max_prob is the predicted outcome - bit misleading as performance metric because sometimes probabilities are only diff by 0.05 or so but this will still pick a single outcome. Should find a way to adjust for close wins/losses/draws
-confusion_mat <- table(test_actuals$outcome, test_actuals$pred_outcome)
-
-confusion_mat
-
-# Win accuracy
-confusion_mat[9]/ (confusion_mat[9] +  confusion_mat[6] + confusion_mat[3])
-
-# Loss accuracy
-confusion_mat[5]/ (confusion_mat[5] +  confusion_mat[2] + confusion_mat[8])
-
-# Draw accuracy
-confusion_mat[1]/ (confusion_mat[1] +  confusion_mat[4] + confusion_mat[7])
-
-# Overall accuracy
-(confusion_mat[1] +  confusion_mat[5] + confusion_mat[9])/n_test_obs
+# #all the differentials
+# biv_cleaned_matches<- cleaned_matches %>%
+#   mutate(neutral_location = ifelse(neutral_location == TRUE, 1, 0))
+# 
+# 
+# #final model2 data is the training data 
+# test_home <- final_model2_data[, "country1_score"] 
+# test_away <- final_model2_data[, "country2_score"] 
+# 
+# #getting three datasets from this, one for each matrix of X for the biv poisson model
+# #they also include intercept
+# td1 <- final_model2_data %>%
+#          select(fifa_rank_differential, offense_differential,goalkeeper_differential,
+#           neutral_location,
+#        shots_on_target_differential,shots_differential,yellow_cards_differential,fouls_differential) %>% 
+#   mutate(int_col = rep(1,nrow(.))) %>% 
+#   relocate(int_col)
+# td2 <- final_model2_data %>%
+#          select(fifa_rank_differential, offense_differential,goalkeeper_differential,
+#           neutral_location, 
+#        shots_on_target_differential,shots_differential,yellow_cards_differential,fouls_differential) %>% 
+#   mutate(int_col = rep(1,nrow(.))) %>% 
+#   relocate(int_col)
+# td3 <- final_model2_data %>%
+#          select(fifa_rank_differential, offense_differential,goalkeeper_differential,
+#           neutral_location,
+#        shots_on_target_differential,shots_differential,yellow_cards_differential,fouls_differential) %>% 
+#   mutate(int_col = rep(1,nrow(.))) %>% 
+#   relocate(int_col)
+# 
+# #same as above
+# train_data_biv <- biv_cleaned_matches
+# 
+# 
+# #not split... make train data
+# fin_mod <- lm.bp(l1 = home_team_score~ fifa_rank_differential + offense_differential + goalkeeper_differential +
+#                    neutral_location+ shots_on_target_differential + shots_differential+ yellow_cards_differential 
+#                  +fouls_differential,
+#                  l2 = away_team_score~ fifa_rank_differential + offense_differential + goalkeeper_differential +
+#                    neutral_location+ shots_on_target_differential + shots_differential+ yellow_cards_differential +fouls_differential,
+#                  l3 = ~ fifa_rank_differential + offense_differential + goalkeeper_differential +
+#                    neutral_location+ shots_on_target_differential + shots_differential+ yellow_cards_differential +fouls_differential, 
+#                  data = train_data_biv)
+# 
+# 
+# # ok multiply
+# final_lambdas <- tibble(lambda_1 = exp(as.matrix(td1) %*% as.matrix(fin_mod$beta1)),
+#                         lambda_2 = exp(as.matrix(td2) %*% as.matrix(fin_mod$beta2)),
+#                         lambda_3 = exp(as.matrix(td3) %*% as.matrix(fin_mod$beta3)))
+# 
+# 
+# n_test_obs <- nrow(final_lambdas)
+# n_sims <- 100000
+# set.seed(1)
+# all_monte_carlos <- as.data.frame(matrix(NA, nrow = n_sims, ncol = 2*n_test_obs))
+# for(i in 1:n_test_obs) {
+#   monte_carlo <- rbvpois(n_sims, final_lambdas$lambda_1[i], 
+#                        final_lambdas$lambda_2[i], 
+#                        final_lambdas$lambda_3[i])
+#   all_monte_carlos[, (2*i-1)] <- monte_carlo[, 1]
+#   all_monte_carlos[, (2*i)] <- monte_carlo[, 2]
+# }
+# 
+# test_actuals <- tibble(home = test_home, away = test_away) %>%
+#   mutate(outcome = case_when(
+#     test_home - test_away == 0 ~ "Draw",
+#     test_home - test_away > 0 ~ "Win",
+#     test_home - test_away < 0 ~ "Loss"
+#   ),
+#   pred_win_prob = NA,
+#   pred_loss_prob = NA,
+#   pred_draw_prob = NA
+#   )
+# 
+# for(i in 1:n_test_obs) {
+#   test_actuals[i, "pred_win_prob"] <- 
+#     (sum(all_monte_carlos[, (2*i - 1)] - all_monte_carlos[, (2*i)] > 0))/n_sims
+#   test_actuals[i, "pred_loss_prob"] <- 
+#     (sum(all_monte_carlos[, (2*i - 1)] - all_monte_carlos[, (2*i)] < 0)) /n_sims
+#   test_actuals[i, "pred_draw_prob"] <- 
+#     (sum(all_monte_carlos[, (2*i - 1)] - all_monte_carlos[, (2*i)] == 0)) /n_sims  
+# }
+# 
+# test_actuals <- test_actuals %>%
+#   mutate(pred_outcome = case_when(
+#     pmax(pred_win_prob, pred_loss_prob, pred_draw_prob) == pred_draw_prob ~ "Likely Draw",
+#     pmax(pred_win_prob, pred_loss_prob, pred_draw_prob) == pred_win_prob ~ "Likely Win",
+#     pmax(pred_win_prob, pred_loss_prob, pred_draw_prob) == pred_loss_prob ~ "Likely Loss"
+# 
+#   ))
+# 
+# # Confusion matrix assuming max_prob is the predicted outcome - bit misleading as performance metric because sometimes probabilities are only diff by 0.05 or so but this will still pick a single outcome. Should find a way to adjust for close wins/losses/draws
+# confusion_mat <- table(test_actuals$outcome, test_actuals$pred_outcome)
+# 
+# confusion_mat
+# 
+# # Win accuracy
+# confusion_mat[9]/ (confusion_mat[9] +  confusion_mat[6] + confusion_mat[3])
+# 
+# # Loss accuracy
+# confusion_mat[5]/ (confusion_mat[5] +  confusion_mat[2] + confusion_mat[8])
+# 
+# # Draw accuracy
+# confusion_mat[1]/ (confusion_mat[1] +  confusion_mat[4] + confusion_mat[7])
+# 
+# # Overall accuracy
+# (confusion_mat[1] +  confusion_mat[5] + confusion_mat[9])/n_test_obs
 
 
 ```

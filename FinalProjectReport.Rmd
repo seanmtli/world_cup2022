@@ -136,6 +136,18 @@ We see positive relationships with each of these potential predictors and the go
 
 We initially chose to use a GLM-based Poisson regression model to predict goals for home and away teams in each match, as Poisson regression is most appropriate when the response is a discrete count, as is the case for goals scored in a match. We wanted to perform both regularization and variable selection, as our dataset had a very large number of correlated predictors and we suspected that performance could be predicted using a much sparser set of variables; therefore, we introduced a LASSO penalty using the glmnet package, and 5-fold cross validated for the optimal value of lambda. However, we quickly realized that since the outcome of a soccer game is very dependent and how two specific teams interact with each other, we could not use univariate models that would predict a team's score in a vacuum. Hence, we finally decided to use a bivariate poisson regression model to account for these possible correlations.
 
+The general form of this model is as follows (cite later):
+
+Consider random variables $X_k$, K = 1, 2, 3 which follow independent Poisson distributions with parameters $\lambda_k$, respectively. Then random variables X = X1+X3 and Y = X2+X3 follow jointly a bivariate Poisson distribution. So, E(X) = $\lambda_1 + \lambda_3$ and E(Y) = $\lambda_2 + \lambda_3$. When we add covariates, we then have:
+
+$$(X_i, Y_i) \sim BP(\lambda_{1i}, \lambda_{2i}, \lambda_{3i})$$,
+
+$$log(\lambda_{1i}) = w_{1i}^T\beta_1$$,
+$$log(\lambda_{2i}) = w_{2i}^T\beta_2$$,
+$$log(\lambda_{3i}) = w_{3i}^T\beta_3$$
+where i = 1, . . . , n, denotes the observation number, $w_i$ denotes a vector of explanatory
+variables for the i-th observation used to model $\lambda_{ki}$ and $\beta_k$ denotes the corresponding vector of regression coefficients K = 1, 2, 3.
+
 Upon research, we discovered that bivariate models with LASSO regularization have not been invented as of yet (or at least not in a form that is easy to implement). To simulate the potential benefits of this framework as much as possible, we decided to screen our variables using the results of our univariate LASSO models, choosing the sparser set of variables among the home and away models as final predictors in the bivariate model.
 
 As sports bettors are generally interested in a spread/probabilistic outlook on game outcomes to make an informed decision, we decided to run a 100,000 Monte Carlo simulations of our games to obtain estimated odds/probabilities of each game closing with a home team win, loss or draw. We did this by drawing randomly from bivariate Poisson distributions, whose parameters were outputted/estimated by our regression model based on predictor values. 
@@ -152,12 +164,17 @@ For every one unit the home defense is better than the away team, we can expect 
 
 ```
 ```{r}
-fin_mod$coefficients
+kable(fin_mod$coefficients)
 ```
 ```
 From the model coefficients, it's interesting to note that some of the conclusions for the home and away team goals are seemingly contradictory - for example, our model predicted that for every one unit the home midfield is better than the away team, we can expect the rate parameter for home goals to be multiplying by a factor of $e^{0.0150079479 +0.1251729042}$ = 1.15, but also predicted that for every one unit the home midfield is better than the away team, we can expect the rate parameter for away goals to be multiplied by a factor of $e^{-0.02811+0.125}$=1.101. However, since 1.15 is greater than 1.101, we can say that the goal differential (home-away) will still be positive-  in the case that home midfield is one unit better than the away team the rate parameter for home goals is greater than the rate parameter for away goals. The coefficients for the defense seem a little bit counterintuitive, as it states that as defense score increases, the rate parameter for home goals decreases, implying that teams should weaken their defense to score more, which doesn't really make sense. However, a possible interpretation is that we can look at a focus on defense, midfield, and offense as a spectrum -- the more a team focuses on defense, to less they focus on offense, and thus may be less likely to score. 
 
 For sports betters, the main takeaway is that a team's player composition - their defense, midfield, and offense player rankings - are the most important metrics to investigate (over other metrics like shots or saves in past games) when the results of a matchup. In addition, the composition of a team and their respective strengths in defense, midfield, and offense, is also indicative of how many goals they end up scoring compared to the other team and thus the final outcome of the game. 
+
+```{r}
+kable(confusion_mat)
+```
+
 
 # Write about Odds Results here 
 
