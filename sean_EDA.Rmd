@@ -234,6 +234,7 @@ results_and_odds <- results_and_odds %>%
          drawProb = case_when(drawOdds>0 ~ (100/(drawOdds+100)), TRUE ~ (-drawOdds/(-drawOdds+100))),
          loseProb = case_when(loseOdds>0 ~ (100/(loseOdds+100)), TRUE ~ (-loseOdds/(-loseOdds+100)))
          )
+
 ```
 
 
