@@ -224,7 +224,7 @@ In order to use our model, we successfully checked the model diagnostics as foll
 2. There are linear relationships between log(response) and changes in predictor variables. Details are in the appendix. 
 
 #odds
-
+RUN THIS CODE CHUNK TO GET MONEY
 ```{r}
 results_and_odds <-read_xlsx("data/group_pred_with_odds.xlsx")
 
