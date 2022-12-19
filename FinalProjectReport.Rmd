@@ -49,7 +49,7 @@ The dataset we use is a set of thousands of international soccer matches from Ju
 # Data
 Our analysis utilized a few different datasets, which were combined (and later cleaned) into one final dataset. The main dataset was found on [GitHub](https://github.com/martj42/international_results), which gathered data from [Wikipedia](https://en.wikipedia.org/wiki/Special:Search?go=Go&search=soccer+results&ns0=1), the [Rec.Sport.Soccer Statistics Foundation](rsssf.com) (a group which "strives to be the most comprehensive and complete" archive of soccer statistics), and individual soccer team websites. It features the results of 44,341 international soccer matches between 1872 (the year of the first official international match) and 2022.
 
-We also used three other datasets to give us the predictor variables we need to successfully analyze the results and scores of international soccer matches. These included [FIFA World Rankings](https://www.fifa.com/fifa-world-ranking/men?dateId=id13792) scraped from 2002 onwards, [FIFA Player and Team Data](https://www.kaggle.com/datasets/stefanoleone992/fifa-22-complete-player-dataset), which details the ratings, positions, and other metrics of individual players in the FIFA video game series from the 2015 to 2022 versions of the game, and (box dataset), which tells us additional game specific results like shots on target, possession, red/yellow cards etc. 
+We also used three other datasets to give us the predictor variables we need to successfully analyze the results and scores of international soccer matches. These included [FIFA World Rankings](https://www.fifa.com/fifa-world-ranking/men?dateId=id13792) scraped from 2002 onwards, [FIFA Player and Team Data](https://www.kaggle.com/datasets/stefanoleone992/fifa-22-complete-player-dataset), which details the ratings, positions, and other metrics of individual players in the FIFA video game series from the 2015 to 2022 versions of the game, and a match box score dataset, which tells us additional game specific results like shots on target, possession, red/yellow cards etc. 
 
 
 ## Data Cleaning
@@ -93,7 +93,7 @@ ggplot(data = matches, aes(x = score_differential)) +
 
 The score differentials range from -6 to 7, and it appears that the distribution of score differentials appears to be close to normally distributed. This graph could indicate that if a team were to win or lose, it is most likely by only a goal or two, as those outcomes make up the bulk of the distribution. The median (blue line) of the score differentials is zero and the mean (red line) of the score differentials is `r round(mean(matches$score_differential),3)`.
 
-Next, we wanted to see if we could associate any of the predictors visually with the outcome of the game. The predictor variable that appeared to have the largest effect on the goal differential was the shots on target differential:
+Next, we wanted to see if we could associate any of the predictors visually with the outcome of the game. The predictor variable that appeared to have the largest effect on the goal differential was the shots on target differential (note that while the response variable is not categorical, we can still interpret it as such with observations on the dotted red line indicating draws, observations above the red line indicating home team wins, and observations below the red line indicating home team losses):
 
 ```{r fig.width=5,fig.height=3}
 ggplot(data = matches, aes(x = shots_on_target_differential, y = score_differential)) +
@@ -105,7 +105,7 @@ ggplot(data = matches, aes(x = shots_on_target_differential, y = score_different
        title = "Game Outcome Related to Difference in Shots on Target")
 ```
 
-This made sense to us as an increase in the number of shots on target relative to the other team indicates that there are more opportunities for a team to score. Therefore, an increase in the shots on target differential indicates that they are more likely to win (and win my more goals).
+This made sense to us as an increase in the number of shots on target relative to the other team indicates that there are more opportunities for a team to score. Therefore, an increase in the shots on target differential indicates that they are more likely to win (and win my more goals). However, while there does appear to be a general trend for win probability, we can see that the distribution of goal differential when we hold this differential constant is still very wide - for example, when we hold the shots on target differential at 5, we had observations ranging from a home team victory by 4 goals to a home team loss by 2 goals, which is a very wide range.
 
 We also saw similar trends (but to a lesser extent) with each of the rating metrics from the FIFA series, shown below:
 
@@ -142,6 +142,22 @@ p4<-ggplot(data = matches, aes(x = defense_differential, y = score_differential)
 ```
 
 We see positive relationships with each of these potential predictors and the goal differential. These trends are something interesting we would like to explore in our numerical and probabilisitic models. However, the similarly-distributed scatterplots and lines of best fit could indicate a possible instance of multicollinearity between these predictors - this is something we must explore and do our best to avoid when fitting our models.
+
+We briefly explore this potential multicollinearity a little further:
+
+```{r fig.height = 3, fig.width = 5}
+ggplot(data = matches, aes(x = offense_differential,
+                           y = defense_differential,
+                           color = home_team_result)) +
+  geom_point(alpha = 0.3) +
+  labs(x = "Offense Rating Diff",
+       y = "Defense Rating Diff",
+       color = "Home Team Outcome",
+       title = "Possible Multicollinearity in Data",
+       subtitle = "Rating Differentials Appear to Increase With Each Other")
+```
+
+We can see from the above scatterplot that as a team's offense improves over another team's offense, it appears that their defense will generally improve over the other team as well (and vice versa). This shows potential collinearity of our predictors, showing that a team is generally holistically better if they are to win matches. Furthermore, we see from this plot that while the data is clearly not linearly separable, we can see groupings of the win and loss observations, meaning that differentiating between these two categories will be more than possible. However, we see that the draw outcomes tend to overlap with both of these groups, indicating that predicting matches that end in a draw is likely very difficult as they have a much more volatile and inconsistent grouping in our data.
 
 # Methodology
 
@@ -185,11 +201,13 @@ The first of these is undoubtedly the most important - we can examine the mean a
 #   group_by(away_team) %>%
 #   summarize(mean_score = mean(home_team_score), var_score = var(home_team_score))
 
-biv_cups_only_nona %>%
-  summarize(mean_score = mean(home_team_score), var_score = var(home_team_score))
+table1 <- biv_cups_only_nona %>%
+  summarize("Mean Score" = mean(home_team_score), "Score Variance" = var(home_team_score))
 
-biv_cups_only_nona %>%
-  summarize(mean_score = mean(away_team_score), var_score = var(away_team_score))
+table2 <- biv_cups_only_nona %>%
+  summarize("Mean Score" = mean(away_team_score), "Score Variance" = var(away_team_score))
+knitr::kable(table1, caption = "Goal Metrics for Home Team")
+knitr::kable(table2, caption = "Goal Metrics for Away Team")
 
 par(mfrow = c(1,2))
 hist(biv_cups_only_nona$home_team_score, main = "Home Goals Distribution", xlab = "Goals")
@@ -220,7 +238,7 @@ We did try computing goal-line estimations as we had initially hoped to; however
 kable(fin_mod$coefficients)
 ```
 
-Our final predictors for our bivariate poisson model were defense_differential, midfield_differential, and offense_differential. These predictors suggest that the FIFA rankings of the players on the respective teams are the most indicative in predicting match score outcomes. For every one unit the home defense is better than the away team, we can expect the rate parameter for home goals to be multiplying by a factor of $e^{0.0237813-0.0890923}$ = 0.937. For every one unit the home midfield is better than the away team, we can expect the rate parameter for home goals to be multiplying by a factor of $e^{0.0095639 +0.1558049}$ = 1.18. For every one unit the home offense is better than the away team, we can expect the rate parameter for home goals to be multiplying by a factor of $e^{0.0133452-0.0253598}$ = 0.988. 
+Our final predictors for our bivariate Poisson model were `defense_differential`, `midfield_differential`, and `offense_differential`, and all other predictors were determined to not be statistically significant in the model, which was a surprise considering our trends found in the EDA. These predictors suggest that the FIFA rankings of the players on the respective teams are the most indicative in predicting match score outcomes. For every one unit the home defense is better than the away team, we can expect the rate parameter for home goals to be multiplying by a factor of $e^{0.0237813-0.0890923}$ = 0.937. For every one unit the home midfield is better than the away team, we can expect the rate parameter for home goals to be multiplying by a factor of $e^{0.0095639 +0.1558049}$ = 1.18. For every one unit the home offense is better than the away team, we can expect the rate parameter for home goals to be multiplying by a factor of $e^{0.0133452-0.0253598}$ = 0.988. 
 
 For every one unit the home defense is better than the away team, we can expect the rate parameter for away goals to be multiplied by a factor of $e^{-0.0044015 -0.0044015}$ = 0.991. For every one unit the home midfield is better than the away team, we can expect the rate parameter for away goals to be multiplied by a factor of $e^{-0.02504881+0.1558049}$ = 1.17. For every one unit the home offense is better than the away team, we can expect the rate parameter for away goals to be multiplied by a factor of $e^{-0.0237410-0.0253598}$ = 0.952. 
 
@@ -257,13 +275,13 @@ Finally, based on our model's probabilities, we were wanted to see how often our
 kable(confusion_mat, caption = "Confusion Matrix for Model")
 ```
 
-This implied a home team win accuracy of about `r round(confusion_mat[6]/(confusion_mat[3] + confusion_mat[6]), 2) * 100`%, a home team loss/away team win accuracy of about `r round(confusion_mat[2]/(confusion_mat[2] + confusion_mat[5]), 2) * 100`%, and an overall accuracy of about `r round((confusion_mat[2] + confusion_mat[6]) /n_test_obs, 2) *100`%. Note that our model did not predict any draws at all, despite there being 10 draws across 48 games, which hence put our draw accuracy at zero. Although this last finding seems problematic, it must be acknowledged that draws are notoriously difficult to predict accurately - in fact, using the aggregation of odds from OddsPortal to predict outcomes leads to exactly the same result:
+This implied a home team win accuracy of about `r round(confusion_mat[6]/(confusion_mat[3] + confusion_mat[6]), 2) * 100`%, a home team loss/away team win accuracy of about `r round(confusion_mat[2]/(confusion_mat[2] + confusion_mat[5]), 2) * 100`%, and an overall accuracy of about `r round((confusion_mat[2] + confusion_mat[6]) /n_test_obs, 2) *100`% (getting 26 of the 48 group stage matches correct). Note that our model did not predict any draws at all, despite there being 10 draws across 48 games, which hence put our draw accuracy at zero. Although this last finding seems problematic, it must be acknowledged that draws are notoriously difficult to predict accurately - in fact, using the aggregation of odds from OddsPortal to predict outcomes leads to exactly the same result:
 
 ```{r}
 kable(confusion_mat_books, caption = "Confusion Matrix for Sports Books")
 ```
 
-Clearly, no "Likely Draw" column exists here either. We can also calculate accuracies as above: win accuracy would be `r `round(confusion_mat_books[6]/(confusion_mat_books[3] + confusion_mat_books[6]),2) * 100`%, loss accuracy `r `round(confusion_mat_books[2]/(confusion_mat_books[2] + confusion_mat_books[5]),2) * 100`% and overall accuracy `r round((confusion_mat_books[2] + confusion_mat_books[6]) /n_test_obs, 2) * 100`%. We see that our model has performed somewhat better than sports books odds for home team losses/away team wins, the ultimate effect and implications of which will be discussed briefly in our conclusion.
+Clearly, no "Likely Draw" column exists here either. We can also calculate accuracies as above: win accuracy would be `r round(confusion_mat_books[6]/(confusion_mat_books[3] + confusion_mat_books[6]),2) * 100`%, loss accuracy `r round(confusion_mat_books[2]/(confusion_mat_books[2] + confusion_mat_books[5]),2) * 100`% and overall accuracy `r round((confusion_mat_books[2] + confusion_mat_books[6]) /n_test_obs, 2) * 100`%. We see that our model has performed somewhat better than sports books odds for home team losses/away team wins, the ultimate effect and implications of which will be discussed briefly in our conclusion.
 
 # Conclusion 
 
@@ -271,11 +289,11 @@ To summarize our work - our model tackles the most important bet in soccer, the 
 
 In closing out our analysis, we wanted to see if our model could actually make us money on average; with payouts based on the pregame moneyline odds taken from OddsPortal, we chose to simply bet on the most likely outcome for each match based on our model. Of course, this is not always the most optimal betting strategy - importantly, the objective of the model is to mark odds as accurately as possible for each match, not tell bettors who to bet on - but it would give us an idea of how profitable the model would be if we were to make the safest bets possible.
 
-For moneyline bets, our model would have obtained a net profit of -\$327, i.e it would lose 327 dollars over all 48 bets across group stage matches. This is assuming one placed a flat \$100 bet for each match on the most likely line as predicted by our model, as previously mentioned. Furthermore, one can apply a number of more complex betting strategies given a set of odds our model generates, but that is beyond the scope of the project. However, while our model lost money, it still **outperforms** a bettor who places the same 100 dollars on the most likely line as indicated by the sports books' odds, who would lose roughly \$2600. This makes perfect sense - according to most sports betting experts, the optimal betting strategy is to bet on underdogs at least some of the time i.e bet on less likely outcomes in at least some matches. This is because lines for unlikely outcomes have far greater payout, so while betting on likely outcomes would probably end up in making the right call more often, this does not ensure long-term profit. However, it is reassuring all the same that our model's had odds and calls marked more accurately for these "safe" bets. 
+For moneyline bets, our model would have obtained a net profit of -\$327, i.e it would lose 327 dollars over all 48 bets across group stage matches. This is assuming one placed a flat \$100 bet for each match on the most likely line as predicted by our model, as previously mentioned. Furthermore, one can apply a number of more complex betting strategies given a set of odds our model generates, but that is beyond the scope of the project. However, while our model lost money, it still **outperforms** a bettor who places the same 100 dollars on the most likely line as indicated by the sports books' odds, who would lose roughly \$2600. This makes perfect sense - according to most sports betting experts, the optimal betting strategy is to bet on underdogs at least some of the time i.e bet on less likely outcomes in at least some matches. This is because lines for unlikely outcomes have far greater payout, so while betting on likely outcomes would probably end up in making the right call more often, this does not ensure long-term profit. However, it is reassuring all the same that our model's had odds and calls marked more accurately for these "safe" bets. Furthermore, while our model did lose money (more specifically, it lost \$327 on \$4800 of total bets), it did so without the incorporation of an optimized betting strategy, where bet values could differ depending on the difference in our estimated probability and the sportsbook's implied probability. This strategy is out of the scope of this project, but optimizing the betting strategy from our model outcomes could reduce this loss even further (or bring the model into profit). The percentage loss was 6.8% of money betted, which is comparable to a sportsbook's general "house edge" of about 4 to 5 percent - if sportsbooks had no edge on the gambler, our model would have likely lost just less than two percent of money betted.
 
-One intuitive way to apply our findings for future matchups is to spot significant differences between the sports book odds and the ones our model puts out. A significant difference could mean that we see a value bet in a less likely event according to a sports book but more likely according to the model. For example: Let's take a look at the Ecuador - Senegal match which had the pregame line of +148, +208, +223 for an Ecuador win,draw, and loss respectively. That translates the most likely outcome being an Ecuador win, whereas our model had probabilities of roughly 0.32, 0.28, 0.38, translating to predicting a Ecuador loss, which did happen as Ecuador lost to Senegal 1-2. 
+One intuitive way to apply our findings for future matchups is to spot significant differences between the sports book odds and the ones our model puts out. A significant difference could mean that we see a value bet in a less likely event according to a sports book but more likely according to the model. For example: Let's take a look at the Ecuador - Senegal match which had the pregame line of +148, +208, +223 for an Ecuador win, draw, and loss, respectively. That translates the most likely outcome being an Ecuador win, whereas our model had probabilities of roughly 0.32, 0.28, 0.38, translating to predicting a Ecuador loss, which did happen as Ecuador lost to Senegal 1-2. This would be an indicator where our model determined that the estimated probability of an outcome was higher than what the sportsbook's odds implied, meaning that our model suggests we should place a bet on this outcome as the expected profit would be positive (assuming an accurate model).
 
-Most of our work's limitations stem from the nature of the problem we are trying to solve - sports are inherently hard to predict, which is why any model we built did not have great accuracy. If building high performing models was easy, then sports books would simply go out of business! Much of the intrigue of sports betting is indeed knowing when to make the call on the underdog, something our model simply cannot capture. Furthermore, it is difficult to take into account the interaction between two specific teams, as they prepare customized game plans that differ based upon opponent that are not released to the public. These intangibles were not accounted for by the predictors for the models were built. Sports bettors should heed also caution when using our model (or any model) to accurately predict draws; as we saw before, it predicted none of the 10 draws across 48 matches correctly. This limitation is likely linked to the low-scoring nature of soccer. Future work may include building models to target other bets, such as over/under on total goals scored or various team/player prop bets. 
+Most of our work's limitations stem from the nature of the problem we are trying to solve - sports are inherently hard to predict, which is why any model we built did not have great accuracy. If building high performing models was easy, then sports books would simply go out of business! Much of the intrigue of sports betting is indeed knowing when to make the call on the underdog, something our model simply cannot capture. Furthermore, it is difficult to take into account the interaction between two specific teams, as they prepare customized game plans that differ based upon opponent that are not released to the public. These intangibles were not accounted for by the predictors for the models were built. Sports bettors should heed also caution when using our model (or any model) to accurately predict draws; as we saw before, it predicted none of the 10 draws across 48 matches correctly. This limitation is likely linked to the low-scoring nature of soccer and the fact that draws never appeared to be the most likely outcome in both sportsbooks' implied match outcome probabilities and our model's estimated probabilities. Future work may include building models to target other bets, such as over/under on total goals scored or various team/player prop bets, and finding other statistically siginificant predictors which can be used to further predict the outcome of soccer matches (preferably uncovering which statistics are most likely to correlate to matches ending in a draw, which was the weakest area of our model). 
 
 
 # Appendix
